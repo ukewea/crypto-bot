@@ -4,11 +4,11 @@ from analyzer import *
 
 class RSI_Analyzer(Analyzer):
     # 建構式
-    def __init__(self):
-        self.RSI_PERIOD = 14
-        self.RSI_OVERSELL = 70
-        self.RSI_UNDERBUY = 30
-    
+    def __init__(self, config):
+        self.RSI_PERIOD = config.analyzer["RSI"]["period"]
+        self.RSI_OVERSELL = config.analyzer["RSI"]["oversell"]
+        self.RSI_UNDERBUY = config.analyzer["RSI"]["underbuy"]
+
     def SetRule(self, RSI_PERIOD, RSI_UNDERBUY, RSI_OVERSELL):
         self.RSI_PERIOD = RSI_PERIOD
         self.RSI_OVERSELL = RSI_OVERSELL

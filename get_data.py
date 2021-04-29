@@ -4,9 +4,10 @@ from config import *
 from RSI_Analyzer import *
 
 tic = time.perf_counter()
-crypto = Crypto(Config())
+config = Config()
+crypto = Crypto(config)
 watching_symbols = crypto.get_exchange_symbol("USDT")
-analyzer = RSI_Analyzer()
+analyzer = RSI_Analyzer(config)
 
 for symbol in watching_symbols:
     try:

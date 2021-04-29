@@ -1,0 +1,12 @@
+{
+    "RSI": {
+        "period": 14,
+        "underbuy": 30,
+        "oversell": 70
+    },
+    "William": {
+        "period": 89,
+        "underbuy": -99,
+        "oversell": -1
+    }
+}
