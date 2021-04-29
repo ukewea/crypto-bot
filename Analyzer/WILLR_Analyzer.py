@@ -4,10 +4,10 @@ from .analyzer import *
 
 class WILLR_Analyzer(Analyzer):
     # 建構式
-    def __init__(self):
-        self.PERIOD = 89
-        self.OVERSELL = -1
-        self.UNDERBUY = -99
+    def __init__(self, config):
+        self.PERIOD = config.analyzer["WILLR"]["period"]
+        self.OVERSELL = config.analyzer["WILLR"]["oversell"]
+        self.UNDERBUY = config.analyzer["WILLR"]["underbuy"]
     
     def SetRule(self, PERIOD, OVERSELL, UNDERBUY):
         self.PERIOD = PERIOD

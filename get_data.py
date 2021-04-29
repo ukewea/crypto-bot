@@ -4,10 +4,11 @@ from crypto import *
 from config import *
 
 tic = time.perf_counter()
-crypto = Crypto(Config())
+config = Config()
+crypto = Crypto(config)
 watching_symbols = crypto.get_exchange_symbol("USDT")
-rsi_analyzer = RSI_Analyzer()
-willr_analyzer = WILLR_Analyzer()
+rsi_analyzer = RSI_Analyzer(config)
+willr_analyzer = WILLR_Analyzer(config)
 for symbol in watching_symbols:
     try:
         klines = crypto.get_klines(symbol)
