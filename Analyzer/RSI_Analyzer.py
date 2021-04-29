@@ -1,6 +1,6 @@
 import talib
 import numpy
-from analyzer import *
+from .analyzer import *
 
 class RSI_Analyzer(Analyzer):
     # 建構式
@@ -14,7 +14,13 @@ class RSI_Analyzer(Analyzer):
         self.RSI_OVERSELL = RSI_OVERSELL
         self.RSI_UNDERBUY = RSI_UNDERBUY
 
-    def Analyze(self, closes):
+    def Analyze(self, klines):
+        """
+        RSI Analyzer
+        :param klines: K線資料
+        :return: 建議交易行為 Trade.SELL || Trade.BUY || Trade.PASS
+        """
+        closes = [float(candle.close) for candle in klines]
         np_closes = numpy.array(closes)
         rsi = talib.RSI(np_closes, self.RSI_PERIOD)
         last_rsi = rsi[-2]

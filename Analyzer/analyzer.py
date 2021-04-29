@@ -12,5 +12,5 @@ class Analyzer(metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod
-    def Analyze(self, data):
+    def Analyze(self, klines):
         return NotImplemented
