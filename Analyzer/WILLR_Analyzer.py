@@ -8,7 +8,7 @@ class WILLR_Analyzer(Analyzer):
         self.PERIOD = config.analyzer["WILLR"]["period"]
         self.OVERSELL = config.analyzer["WILLR"]["oversell"]
         self.UNDERBUY = config.analyzer["WILLR"]["underbuy"]
-    
+
     def SetRule(self, PERIOD, OVERSELL, UNDERBUY):
         self.PERIOD = PERIOD
         self.OVERSELL = OVERSELL

@@ -5,7 +5,7 @@ class Crypto:
     # 建構式
     def __init__(self, config):
         self.client = Client(config.auth["API_KEY"], config.auth["API_SECRET"])
-    
+
     def get_exchange_symbol(self, quoteAsset):
         exchange_info = self.client.get_exchange_info()
         # print(type(exchange_info))
@@ -23,8 +23,8 @@ class Crypto:
         """
         Get klines data
         :param symbol: symbol e.q. BTCUSDT、DOGEUSDT
-        :param klines_limit: K線的數量限制 
-        :param interval: 幾分的K線資料 
+        :param klines_limit: K線的數量限制
+        :param interval: 幾分的K線資料
         :return: klines data
         """
         klines = self.client.get_klines(
@@ -38,8 +38,8 @@ class Crypto:
 
     # def get_closed_prices(self, symbol, klines_limit = 100, interval=Client.KLINE_INTERVAL_15MINUTE):
     #     klines = self.get_klines(symbol, klines_limit, interval)
-    #     return [kline.close for kline in klines] 
-    
+    #     return [kline.close for kline in klines]
+
 
 class Kline:
     def __init__(self, dict):
@@ -70,4 +70,3 @@ class Kline:
         self.number_of_trades = dict[8]
         self.taker_buy_base_asset_volume = dict[9]
         self.taker_buy_quote_asset_volume = dict[10]
-        

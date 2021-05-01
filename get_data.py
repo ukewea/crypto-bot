@@ -21,4 +21,4 @@ for symbol in watching_symbols:
         print(e.message)
 
 toc = time.perf_counter()
-print(f"Downloaded quotes took {toc - tic:0.4f} seconds")
+print(f"Download quotes & technical analysis took {toc - tic:0.4f} seconds")
