@@ -20,7 +20,7 @@ class RSI_Analyzer(Analyzer):
         :param klines: K線資料
         :return: 建議交易行為 Trade.SELL || Trade.BUY || Trade.PASS
         """
-        closes = [float(candle.close) for candle in klines]
+        closes = [candle.close for candle in klines]
         np_closes = numpy.array(closes)
         rsi = talib.RSI(np_closes, self.PERIOD)
         last_rsi = rsi[-2]

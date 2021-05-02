@@ -20,7 +20,7 @@ class WILLR_Analyzer(Analyzer):
         :param klines: K線資料
         :return: 建議交易行為 Trade.SELL || Trade.BUY || Trade.PASS
         """
-        highs, lows, closes = zip(*[(float(candle.high), float(candle.low), float(candle.close)) for candle in klines])
+        highs, lows, closes = zip(*[(candle.high, candle.low, candle.close) for candle in klines])
         willrs = talib.WILLR(numpy.array(highs), numpy.array(lows), numpy.array(closes), self.PERIOD)
         last_willr = willrs[-2]
         if last_willr >= self.OVERSELL:
