@@ -1,18 +1,26 @@
 import time
+import file_based_record
+
 from Analyzer import *
 from crypto import *
 from config import *
-
 tic = time.perf_counter()
 config = Config()
 crypto = Crypto(config)
 
 # 交易用的貨幣，等同於買股票用的現金
 cash_asset = "USDT"
+
+# 要排除的貨幣
 exclude_assets = ["DOGE"]
 
 watching_symbols = crypto.get_tradable_symbols(cash_asset, exclude_assets)
 equities_balance = crypto.get_equities_balance(watching_symbols, cash_asset)
+record = file_based_record.FileBasedRecord(watching_symbols, cash_asset)
+
+# 印出倉位
+for k, v in record.positions.items():
+    print(v)
 
 rsi_analyzer = RSI_Analyzer(config)
 willr_analyzer = WILLR_Analyzer(config)
