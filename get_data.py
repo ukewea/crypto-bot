@@ -11,6 +11,7 @@ if __name__ == '__main__':
     tic = time.perf_counter()
     config = Config()
     crypto = Crypto(config)
+    notif = config.spawn_nofification_platform()
 
     exchange_info = crypto.get_exchange_info()
 

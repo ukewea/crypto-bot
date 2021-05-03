@@ -32,9 +32,9 @@ if __name__ == '__main__':
 
         csv_path = os.path.join(BASE_DIR, f'{symbol}.csv')
 
-        if os.path.exists(csv_path):
-            print(f'[{symbol}] skip...')
-            continue
+        # if os.path.exists(csv_path):
+        #     print(f'[{symbol}] skip...')
+        #     continue
 
         csvfile = open(csv_path, 'w', newline='')
         candlestick_writer = csv.writer(csvfile, delimiter=',')
