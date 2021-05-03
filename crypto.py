@@ -5,22 +5,27 @@ from binance.enums import *
 class Crypto:
     # 建構式
     def __init__(self, config):
-        self.client = Client(config.auth["API_KEY"], config.auth["API_SECRET"])
+        self.client = Client(
+            config.auth["API_KEY"], config.auth["API_SECRET"], testnet=True)
+
+    def get_exchange_info(self):
+        exchange_info = self.client.get_exchange_info()
+        return exchange_info
 
     def get_tradable_symbols(self, quote_asset, exclude_assets):
         """找出以 quote_asset 報價，且目前可交易、可送市價單、非槓桿型的交易對"""
 
-        exchange_info = self.client.get_exchange_info()
+        exchange_info = self.get_exchange_info()
         # print(type(exchange_info))
         # with open('exchange_info.json', 'w') as outfile:
         #     json.dump(exchange_info, outfile, indent=4)
 
         trade_with_quote_asset = [item for item in exchange_info['symbols']
-                           if item['quoteAsset'].upper() == quote_asset]
+                                  if item['quoteAsset'].upper() == quote_asset]
 
-        return [WatchingSymbol(symbol['symbol'], symbol['baseAsset'])
-            for symbol in trade_with_quote_asset
-            if symbol['status'].upper() == "TRADING"
+        return [WatchingSymbol(symbol['symbol'], symbol['baseAsset'], symbol)
+                for symbol in trade_with_quote_asset
+                if symbol['status'].upper() == "TRADING"
                 and not symbol['baseAsset'] in exclude_assets
                 and "MARKET" in symbol['orderTypes']
                 and not "LEVERAGED" in symbol['permissions']]
@@ -39,7 +44,8 @@ class Crypto:
             interval=Client.KLINE_INTERVAL_15MINUTE,
             limit=klines_limit)
         if len(klines) < klines_limit:
-            raise Exception(f"No enough data for {symbol} (only {len(klines)})")
+            raise Exception(
+                f"No enough data for {symbol} (only {len(klines)})")
 
         return [Kline(data) for data in klines]
 
@@ -81,17 +87,21 @@ class Crypto:
 
         return ret
 
-    def order(side, quantity, symbol, order_type=ORDER_TYPE_MARKET):
+    def order_quote_qty(self, side, quoteOrderQty, symbol, order_type=ORDER_TYPE_MARKET):
         try:
             print("sending order")
-            order = self.client.create_order(
-                symbol=symbol, side=side, type=order_type, quantity=quantity)
+            order = self.client.create_test_order(
+                symbol=symbol,
+                side=side,
+                type=order_type,
+                quoteOrderQty=quoteOrderQty)
+
             print(order)
+            return (True, order)
         except Exception as e:
             print("an exception occured - {}".format(e))
-            return False
+            return (False, None)
 
-        return True
 
 class Kline:
     """K 線"""
@@ -126,6 +136,7 @@ class Kline:
         self.taker_buy_base_asset_volume = float(dict[9])
         self.taker_buy_quote_asset_volume = float(dict[10])
 
+
 class AssetBalance:
     """資產餘額"""
 
@@ -142,11 +153,16 @@ class AssetBalance:
         self.free = float(dict['free'])
         self.locked = float(dict['locked'])
 
+
 class WatchingSymbol:
     """監視中的交易對"""
 
-    def __init__(self, symbol, base_asset):
+    def __init__(self, symbol, base_asset, info):
         """symbol: 交易對名稱，base_asset: 資產名稱"""
 
         self.symbol = symbol
         self.base_asset = base_asset
+        self.info = info
+
+    def __str__(self):
+        return f"{self.symbol} ({self.base_asset})"

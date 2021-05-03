@@ -106,3 +106,5 @@ ENV/
 # personalized settings
 analyzer-parameters.json
 auth.json
+exclude-coins.json
+asset_positions/*
