@@ -8,3 +8,7 @@ class Config:
 
         with open("analyzer-parameters.json", "r+") as json_file:
             self.analyzer = json.load(json_file)
+
+        # 要排除的貨幣
+        with open("exclude-coins.json", "r+") as json_file:
+            self.exclude_coins = json.load(json_file)

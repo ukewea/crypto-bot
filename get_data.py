@@ -17,11 +17,7 @@ if __name__ == '__main__':
     # 交易用的貨幣，等同於買股票用的現金
     cash_asset = "USDT"
 
-    # 要排除的貨幣
-    with open("exclude-coins.json", "r+") as json_file:
-        exclude_assets = json.load(json_file)
-
-    watching_symbols = crypto.get_tradable_symbols(cash_asset, exclude_assets)
+    watching_symbols = crypto.get_tradable_symbols(cash_asset, config.exclude_coins)
     equities_balance = crypto.get_equities_balance(watching_symbols, cash_asset)
     record = file_based_asset_positions.AssetPositions(watching_symbols, cash_asset)
 
@@ -43,12 +39,6 @@ if __name__ == '__main__':
     record.positions["DOGE"].add_transaction(transaction)
 
     transaction = position.Transaction(1620011227094, SIDE_BUY, "DOGE", "DOGEUSDT", Decimal('36.60000000'), Decimal('0.38157000'), Decimal('0.00001676'), 'BNB')
-    record.positions["DOGE"].add_transaction(transaction)
-
-    transaction = position.Transaction(1620011227094, SIDE_BUY, "DOGE", "DOGEUSDT", Decimal('36.60000000'), Decimal('0.38157000'), Decimal('0.00001676'), 'BNB')
-    record.positions["DOGE"].add_transaction(transaction)
-
-    transaction = position.Transaction(1620011227094, SIDE_SELL, "DOGE", "DOGEUSDT", Decimal('36.60000000'), Decimal('0.38157000'), Decimal('0.00001676'), 'BNB')
     record.positions["DOGE"].add_transaction(transaction)
 
     transaction = position.Transaction(1620011227094, SIDE_SELL, "DOGE", "DOGEUSDT", Decimal('36.60000000'), Decimal('0.38157000'), Decimal('0.00001676'), 'BNB')
