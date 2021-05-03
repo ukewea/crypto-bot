@@ -1,5 +1,4 @@
 import time
-import file_based_record
 import csv
 from binance.client import Client
 from Analyzer import *
@@ -20,7 +19,7 @@ equities_balance = crypto.get_equities_balance(watching_symbols, cash_asset)
 
 fromdate = "1 Jan, 2021"
 enddate = "1 May, 2021"
-KLINE_INTERVAL = Client.KLINE_INTERVAL_1HOUR
+KLINE_INTERVAL = Client.KLINE_INTERVAL_15MINUTE
 
 for symbol_info in watching_symbols:
     symbol = symbol_info.symbol
