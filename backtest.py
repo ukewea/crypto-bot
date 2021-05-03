@@ -31,5 +31,5 @@ for symbol_info in watching_symbols:
     #fromdate = datetime.datetime.strptime('2020-07-01', '%Y-%m-%d')
     #todate = datetime.datetime.strptime('2020-07-12', '%Y-%m-%d')
     data = bt.feeds.GenericCSVData(dataname=f'data\{symbol}.csv', dtformat=2, compression=15, timeframe=bt.TimeFrame.Minutes)#, fromdate=fromdate, todate=todate)
-    willr_analyzer.Backtest(data)
-    #rsi_analyzer.Backtest(data)
+    #willr_analyzer.Backtest(data)
+    rsi_analyzer.Backtest(data)

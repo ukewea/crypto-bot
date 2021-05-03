@@ -48,22 +48,10 @@ class WILLR_Strategy(bt.Strategy):
         self.UNDERBUY = config.analyzer["WILLR"]["underbuy"]
         self.WILLR = bt.indicators.WilliamsR(self.data, period = self.PERIOD)
 
-    def notify_order(self, order):
-        if order.status == order.Completed:
-            pass
-
-        if not order.alive():
-            self.order = None  # No pending orders
-
-    def start(self):
-        self.order = None  
-
     def next(self):
-        if self.order:
-            return  
-            
         if self.WILLR >= self.OVERSELL and self.position: # 已持倉:
             self.close()
 
         if self.WILLR <= self.UNDERBUY and not self.position: # 未持倉:
-            self.buy(size=1)
+            size = self.broker.get_cash() / self.data.close[0]
+            self.order = self.buy(size=size)

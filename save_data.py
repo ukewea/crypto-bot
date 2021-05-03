@@ -17,8 +17,8 @@ exclude_assets = []
 watching_symbols = crypto.get_tradable_symbols(cash_asset, exclude_assets)
 equities_balance = crypto.get_equities_balance(watching_symbols, cash_asset)
 
-fromdate = "1 Jan, 2021"
-enddate = "1 May, 2021"
+fromdate = "10-01-2018"
+todate = "12-31-2018" # API有問題，目前不管怎樣都會抓到今天為止
 KLINE_INTERVAL = Client.KLINE_INTERVAL_15MINUTE
 
 for symbol_info in watching_symbols:
@@ -33,9 +33,11 @@ for symbol_info in watching_symbols:
 
     csvfile = open(f'data\{symbol}.csv', 'w', newline='') 
     candlestick_writer = csv.writer(csvfile, delimiter=',')
-    candlesticks = crypto.get_historical_klines(symbol, KLINE_INTERVAL, fromdate, enddate)
+    print(f'[{symbol}] start downloading...') 
+    candlesticks = crypto.get_historical_klines(symbol, KLINE_INTERVAL, fromdate, todate)
     for candlestick in candlesticks:
         candlestick[0] = candlestick[0] / 1000 # 為了轉成float型態
         candlestick_writer.writerow(candlestick)
 
+    print(f'[{symbol}] end') 
     csvfile.close()
