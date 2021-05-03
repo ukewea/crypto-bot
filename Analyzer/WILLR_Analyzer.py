@@ -1,6 +1,8 @@
 import talib
 import numpy
 from .analyzer import *
+from config import *
+import backtrader as bt
 
 class WILLR_Analyzer(Analyzer):
     # 建構式
@@ -29,3 +31,27 @@ class WILLR_Analyzer(Analyzer):
             return Trade.BUY
         else:
             return Trade.PASS
+    
+    def Backtest(self, klines):
+        cerebro = bt.Cerebro()
+        data = klines
+        cerebro.adddata(data)
+        cerebro.addstrategy(WILLR_Strategy)
+        cerebro.run()
+        cerebro.plot()         
+
+class WILLR_Strategy(bt.Strategy):
+    def __init__(self):
+        config = Config()
+        self.PERIOD = config.analyzer["WILLR"]["period"]
+        self.OVERSELL = config.analyzer["WILLR"]["oversell"]
+        self.UNDERBUY = config.analyzer["WILLR"]["underbuy"]
+        self.WILLR = bt.indicators.WilliamsR(self.data, period = self.PERIOD)
+
+    def next(self):
+        if self.WILLR >= self.OVERSELL and self.position: # 已持倉:
+            self.close()
+
+        if self.WILLR <= self.UNDERBUY and not self.position: # 未持倉:
+            size = self.broker.get_cash() / self.data.close[0]
+            self.order = self.buy(size=size)
