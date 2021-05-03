@@ -1,10 +1,12 @@
 if __name__ == '__main__':
     import time
     import csv
+    import os
     from binance.client import Client
     from Analyzer import *
     from crypto import *
     from config import *
+
     tic = time.perf_counter()
     config = Config()
     crypto = Crypto(config)
@@ -16,23 +18,25 @@ if __name__ == '__main__':
     exclude_assets = []
 
     watching_symbols = crypto.get_tradable_symbols(cash_asset, exclude_assets)
-    equities_balance = crypto.get_equities_balance(watching_symbols, cash_asset)
 
     fromdate = "01-01-2021"
     todate = "05-01-2021" # API有問題，目前不管怎樣都會抓到今天為止
     KLINE_INTERVAL = Client.KLINE_INTERVAL_15MINUTE
+    BASE_DIR = 'history_klines'
+
+    os.makedirs(BASE_DIR, mode=0o755, exist_ok=True)
 
     for symbol_info in watching_symbols:
         symbol = symbol_info.symbol
         base_asset = symbol_info.base_asset
 
-        asset_balance = equities_balance[base_asset]
-        if asset_balance is None:
-            # 沒辦法看到該幣餘額，推斷帳號無法交易此幣，所以不計算策略
-            print(f"Cannot get {base_asset} balance in your account")
+        csv_path = os.path.join(BASE_DIR, f'{symbol}.csv')
+
+        if os.path.exists(csv_path):
+            print(f'[{symbol}] skip...')
             continue
 
-        csvfile = open(f'data\{symbol}.csv', 'w', newline='')
+        csvfile = open(csv_path, 'w', newline='')
         candlestick_writer = csv.writer(csvfile, delimiter=',')
         print(f'[{symbol}] start downloading...')
         candlesticks = crypto.get_historical_klines(symbol, KLINE_INTERVAL, fromdate, todate)
@@ -40,5 +44,5 @@ if __name__ == '__main__':
             candlestick[0] = candlestick[0] / 1000 # 為了轉成float型態
             candlestick_writer.writerow(candlestick)
 
-        print(f'[{symbol}] end')
+        print(f'[{symbol}] downloaded to {csv_path}')
         csvfile.close()

@@ -3,7 +3,7 @@ from position import *
 import json
 
 class AssetPositions:
-    """帳號下資產的倉位"""
+    """基於檔案儲存的、帳號下的資產倉位"""
 
     BASE_DIR = "asset_positions"
 
