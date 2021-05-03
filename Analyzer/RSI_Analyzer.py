@@ -1,6 +1,8 @@
 import talib
 import numpy
 from .analyzer import *
+from config import *
+import backtrader as bt
 
 class RSI_Analyzer(Analyzer):
     # 建構式
@@ -13,6 +15,14 @@ class RSI_Analyzer(Analyzer):
         self.PERIOD = PERIOD
         self.OVERSELL = OVERSELL
         self.UNDERBUY = UNDERBUY
+
+    def Backtest(self, klines):
+        cerebro = bt.Cerebro()
+        data = klines
+        cerebro.adddata(data)
+        cerebro.addstrategy(RSI_Strategy)
+        cerebro.run()
+        cerebro.plot()         
 
     def Analyze(self, klines):
         """
@@ -30,3 +40,31 @@ class RSI_Analyzer(Analyzer):
             return Trade.BUY
         else:
             return Trade.PASS
+
+class RSI_Strategy(bt.Strategy):
+    def __init__(self):
+        config = Config()
+        self.PERIOD = config.analyzer["RSI"]["period"]
+        self.OVERSELL = config.analyzer["RSI"]["oversell"]
+        self.UNDERBUY = config.analyzer["RSI"]["underbuy"]
+        self.rsi = bt.indicators.RSI_EMA(self.data, period = self.PERIOD)
+
+    def notify_order(self, order):
+        if order.status == order.Completed:
+            pass
+
+        if not order.alive():
+            self.order = None  # No pending orders
+
+    def start(self):
+        self.order = None  
+
+    def next(self):
+        if self.order:
+            return  
+            
+        if self.rsi >= self.OVERSELL and self.position: # 已持倉:
+            self.order = self.close()
+
+        if self.rsi <= self.UNDERBUY and not self.position: # 未持倉:
+            self.order = self.buy()

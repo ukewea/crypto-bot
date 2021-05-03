@@ -51,6 +51,9 @@ class Crypto:
         account = self.client.get_account()
         return account
 
+    def get_historical_klines(self, symbol, KLINE_INTERVAL, fromdate, todate):
+        return self.client.get_historical_klines(symbol, KLINE_INTERVAL, fromdate, todate)
+
     def get_equities_balance(self, watching_symbols, cash_asset):
         """取得所有資產的餘額，交易用的現金 (aka. cash_asset) 餘額也會包含在內"""
 
