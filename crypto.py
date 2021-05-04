@@ -14,7 +14,7 @@ class Crypto:
 
     def get_latest_price(self, trade_symbol):
         """取得指定交易對的最新報價"""
-        symbol_ticker = self.client.get_symbol_ticker(trade_symbol)
+        symbol_ticker = self.client.get_symbol_ticker(symbol=trade_symbol)
         return symbol_ticker
 
     def get_tradable_symbols(self, quote_asset, exclude_assets):

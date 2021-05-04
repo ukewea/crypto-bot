@@ -3,3 +3,5 @@ numpy
 TA-Lib
 unicorn-binance-websocket-api
 python-telegram-bot
+pygsheets
+pandas
