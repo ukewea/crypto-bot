@@ -107,5 +107,6 @@ ENV/
 analyzer-parameters.json
 auth.json
 exclude-coins.json
+credentials.json
 asset_positions/*
 history_klines/*

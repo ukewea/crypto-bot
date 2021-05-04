@@ -1,6 +1,7 @@
 import json
 from binance.enums import *
 from decimal import Decimal
+from datetime import datetime
 
 
 class Position:
@@ -123,3 +124,10 @@ class Transaction:
             'trade_id': str(self.trade_id),
             'closed_trade_ids': self.closed_trade_ids
         }
+
+    def __str__(self):
+        return (
+            f"TRANSACTION {self.activity} {self.quantity.normalize()} {self.symbol} "
+            f"@{self.price.normalize()} {self.trade_symbol[len(self.symbol):]} COMMISSION {self.commission_as_usdt.normalize()} USDT "
+            f"on {datetime.utcfromtimestamp(self.time/1000).strftime('%Y-%m-%d %H:%M:%S')} UTC"
+        )
