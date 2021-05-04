@@ -1,6 +1,6 @@
 from binance.client import Client
 from binance.enums import *
-
+from decimal import Decimal
 
 class Crypto:
     # 建構式
@@ -11,6 +11,11 @@ class Crypto:
     def get_exchange_info(self):
         exchange_info = self.client.get_exchange_info()
         return exchange_info
+
+    def get_latest_price(self, trade_symbol):
+        """取得指定交易對的最新報價"""
+        symbol_ticker = self.client.get_symbol_ticker(trade_symbol)
+        return symbol_ticker
 
     def get_tradable_symbols(self, quote_asset, exclude_assets):
         """找出以 quote_asset 報價，且目前可交易、可送市價單、非槓桿型的交易對"""
@@ -72,8 +77,6 @@ class Crypto:
         if len(asset_balance) < 1:
             raise Exception(f"Cannot get {cash_asset} balance in your account")
 
-        free_balance = float(asset_balance[0]['free'])
-        locked_balance = float(asset_balance[0]['locked'])
         balance = AssetBalance(asset_balance[0])
         ret[cash_asset] = balance
 
@@ -84,14 +87,30 @@ class Crypto:
                 print(f"Cannot get {base_asset} balance in your account")
                 continue
 
-            free_balance = float(asset_balance[0]['free'])
-            locked_balance = float(asset_balance[0]['locked'])
             balance = AssetBalance(asset_balance[0])
             ret[base_asset] = balance
 
         return ret
 
+    def order_qty(self, side, quantity, symbol, order_type=ORDER_TYPE_MARKET):
+        """送出指定交易數量的訂單"""
+        try:
+            print("sending order")
+            order = self.client.create_test_order(
+                symbol=symbol,
+                side=side,
+                type=order_type,
+                quantity=quantity)
+
+            print(order)
+            return (True, order)
+        except Exception as e:
+            print("an exception occured - {}".format(e))
+            return (False, None)
+
+
     def order_quote_qty(self, side, quoteOrderQty, symbol, order_type=ORDER_TYPE_MARKET):
+        """送出指定成交額的訂單"""
         try:
             print("sending order")
             order = self.client.create_test_order(
@@ -154,8 +173,8 @@ class AssetBalance:
         """
 
         self.asset = dict['asset']
-        self.free = float(dict['free'])
-        self.locked = float(dict['locked'])
+        self.free = Decimal(dict['free'])
+        self.locked = Decimal(dict['locked'])
 
 
 class WatchingSymbol:

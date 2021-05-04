@@ -7,6 +7,7 @@ if __name__ == '__main__':
     from crypto import *
     from binance.enums import *
     from config import *
+    import send_order
 
     tic = time.perf_counter()
     config = Config()
@@ -32,26 +33,25 @@ if __name__ == '__main__':
     total_free_balance_as_cash_asset = 0.0
     total_locked_balance_as_cash_asset = 0.0
 
-    # crypto.order_quote_qty("BUY", 14, "DOGEUSDT")
-
     # {'symbol': 'DOGEUSDT', 'orderId': 786775885, 'orderListId': -1, 'clientOrderId': 'gQp1YKqpjVBMwlkUIcCgWV', 'transactTime': , 'price': '0.00000000', 'origQty': '36.60000000', 'executedQty': '36.60000000', 'cummulativeQuoteQty': '13.96546200', 'status': 'FILLED', 'timeInForce': 'GTC', 'type': 'MARKET', 'side': 'BUY', 'fills': [{'price': '0.38157000', 'qty': '36.60000000', 'commission': '0.00001676', 'commissionAsset': 'BNB', 'tradeId': 142837993}]}
 
-    transaction = position.Transaction(1620011227094, SIDE_BUY, "DOGE", "DOGEUSDT", Decimal('36.60000000'), Decimal('0.38157000'), Decimal('0.00001676'), 'BNB')
-    record.positions["DOGE"].add_transaction(transaction)
+    # transaction = position.Transaction(1620011227094, SIDE_BUY, "DOGE", "DOGEUSDT", Decimal('36.60000000'), Decimal('0.38157000'), Decimal('0.00001676'), 'BNB', 142837993, None)
+    # record.positions["DOGE"].add_transaction(transaction)
 
-    transaction = position.Transaction(1620011227094, SIDE_BUY, "DOGE", "DOGEUSDT", Decimal('36.60000000'), Decimal('0.38157000'), Decimal('0.00001676'), 'BNB')
-    record.positions["DOGE"].add_transaction(transaction)
+    # # 目前操作策略為 all-in, all-out，所以賣出時平倉的部位就是最後一次買進的部位
+    # transaction = position.Transaction(1620011227094, SIDE_SELL, "DOGE", "DOGEUSDT", Decimal('36.60000000'), Decimal('0.38157000'), Decimal('0.00001676'), 'BNB', 142837995, [])
+    # record.positions["DOGE"].add_transaction(transaction)
 
-    transaction = position.Transaction(1620011227094, SIDE_SELL, "DOGE", "DOGEUSDT", Decimal('36.60000000'), Decimal('0.38157000'), Decimal('0.00001676'), 'BNB')
-    record.positions["DOGE"].add_transaction(transaction)
+    # transaction = position.Transaction(1620011227094, SIDE_BUY, "DOGE", "DOGEUSDT", Decimal('36.60000000'), Decimal('0.38157000'), Decimal('0.00001676'), 'BNB', 142837994, None)
+    # record.positions["DOGE"].add_transaction(transaction)
 
-    transaction = position.Transaction(1620011227094, SIDE_SELL, "DOGE", "DOGEUSDT", Decimal('36.60000000'), Decimal('0.38157000'), Decimal('0.00001676'), 'BNB')
-    record.positions["DOGE"].add_transaction(transaction)
+    # # 目前操作策略為 all-in, all-out，所以賣出時平倉的部位就是最後一次買進的部位
+    # transaction = position.Transaction(1620011227094, SIDE_SELL, "DOGE", "DOGEUSDT", Decimal('36.60000000'), Decimal('0.38157000'), Decimal('0.00001676'), 'BNB', 142837996, [])
+    # record.positions["DOGE"].add_transaction(transaction)
 
-    raise Exception()
+    max_avg_fund = Decimal(20)
 
     for symbol_info in watching_symbols:
-
         symbol = symbol_info.symbol
         base_asset = symbol_info.base_asset
 
@@ -75,6 +75,26 @@ if __name__ == '__main__':
             print(f"[{symbol}]:")
             print(f"    RSI: {trade_rsi}")
             print(f"    WILLR: {trade_willr}")
+
+            if trade_rsi == Trade.Buy and trade_willr == Trade.Buy:
+                buy_ok, result = send_order.open_position_with_max_fund(
+                    api_client=crypto,
+                    base_asset=base_asset,
+                    trade_symbol=symbol,
+                    cash_asset=cash_asset,
+                    max_fund=max_avg_fund,
+                    asset_position=record.positions[base_asset],
+                    symbol_info=symbol_info,
+                )
+            elif trade_rsi == Trade.SELL and trade_willr == Trade.SELL:
+                buy_ok, result = send_order.close_all_position(
+                    api_client=crypto,
+                    base_asset=base_asset,
+                    trade_symbol=symbol,
+                    cash_asset=cash_asset,
+                    asset_position=record.positions[base_asset],
+                    symbol_info=symbol_info,
+                )
         except Exception as e:
             print(e)
 
