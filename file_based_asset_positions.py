@@ -4,7 +4,20 @@ import json
 
 class AssetPositions:
     """基於檔案儲存的、帳號下的資產倉位"""
-
+    """
+    總手續費 (USDT)
+    交易完成總數
+    已實現總利潤
+    已實現報酬率(%)
+    未實現總利潤
+    未實現報酬率(%)
+    交易勝利次數
+    交易失敗次數
+    交易勝率
+    交易平均損益
+    交易平均時間
+    已運作時長
+    """
     BASE_DIR = "asset_positions"
 
     def __init__(self, watching_symbols, cash_asset):

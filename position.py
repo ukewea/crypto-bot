@@ -4,21 +4,6 @@ from decimal import Decimal
 
 class Position:
     """倉位"""
-    """
-    ToDoList:
-    總手續費
-    交易完成總數
-    總利潤
-    報酬率(%)
-    未實現總利潤
-    未實現報酬率(%)
-    交易勝利次數
-    交易失敗次數
-    交易勝率
-    交易平均損益
-    交易平均時間
-    已運作時長
-    """
     def __init__(self, asset_symbol, on_update, dict):
         """
         asset_symbol: 貨幣代號
