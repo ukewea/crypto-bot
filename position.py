@@ -9,6 +9,7 @@ class Position:
 
     def __init__(self, asset_symbol, on_update, dict):
         """
+        從資料來源 (dict) 還原倉位紀錄到 memory
         asset_symbol: 貨幣代號
         transaction: 交易紀錄
         """
@@ -32,19 +33,21 @@ class Position:
         for transact in dict['transactions']:
             # print(transact)
             self.transactions.append(Transaction(
-                int(transact['time']),
-                transact['activity'],
-                transact['symbol'],
-                transact['trade_symbol'],
-                Decimal(transact['quantity']),
-                Decimal(transact['price']),
-                Decimal(transact['commission']),
-                transact['commission_asset']),
-                Decimal(transact['commission_as_usdt']),
-                transact['trade_id'],
-                transact['closed_trade_ids'])
+                time=int(transact['time']),
+                activity=transact['activity'],
+                symbol=transact['symbol'],
+                trade_symbol=transact['trade_symbol'],
+                quantity=Decimal(transact['quantity']),
+                price=Decimal(transact['price']),
+                commission=Decimal(transact['commission']),
+                commission_asset=transact['commission_asset']),
+                commission_as_usdt=Decimal(transact['commission_as_usdt']),
+                order_id=transact['order_id'],
+                trade_id=transact['trade_id'],
+                closed_trade_ids=transact['closed_trade_ids'])
 
     def to_dict(self):
+        # 輸出全部轉 string，保留數字精度
         return {
             'open_quantity': str(self.open_quantity),
             'open_cost': str(self.open_cost),
@@ -90,7 +93,21 @@ class Position:
 
 
 class Transaction:
-    def __init__(self, time, activity, symbol, trade_symbol, quantity, price, commission, commission_asset, commission_as_usdt, trade_id, closed_trade_ids):
+    def __init__(
+        self,
+        time: int,
+        activity: str,
+        symbol: str,
+        trade_symbol: str,
+        quantity: Decimal,
+        price: Decimal,
+        commission: Decimal,
+        commission_asset: str,
+        commission_as_usdt: Decimal,
+        order_id: str,
+        trade_id: str,
+        closed_trade_ids: list
+    ):
         self.time = time
         self.activity = activity
         self.symbol = symbol
@@ -100,6 +117,7 @@ class Transaction:
         self.commission = commission
         self.commission_asset = commission_asset
         self.commission_as_usdt = commission_as_usdt
+        self.order_id = order_id
         self.trade_id = trade_id
 
         if activity == SIDE_SELL and (closed_trade_ids is None or len(closed_trade_ids) < 1):
@@ -111,6 +129,7 @@ class Transaction:
             self.closed_trade_ids = closed_trade_ids
 
     def to_dict(self):
+        # 輸出全部轉 string，保留數字精度
         return {
             'time': str(self.time),
             'activity': str(self.activity),
@@ -121,6 +140,7 @@ class Transaction:
             'commission': str(self.commission),
             'commission_asset': str(self.commission_asset),
             'commission_as_usdt': str(self.commission_as_usdt),
+            'order_id': str(self.order_id),
             'trade_id': str(self.trade_id),
             'closed_trade_ids': self.closed_trade_ids
         }

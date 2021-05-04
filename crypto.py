@@ -1,6 +1,43 @@
 from binance.client import Client
 from binance.enums import *
 from decimal import Decimal
+from typing import Dict, List
+
+
+class AssetBalance:
+    """資產餘額"""
+
+    def __init__(self, dict):
+        """
+        dict: {
+            'asset': 'BTC', // 資產名
+            'free': '0.00000000', // 可動用
+            'locked': '0.00000000' // 交易凍結
+        }
+        """
+
+        self.asset = dict['asset']
+        self.free = Decimal(dict['free'])
+        self.locked = Decimal(dict['locked'])
+
+
+class WatchingSymbol:
+    """監視中的交易對"""
+
+    def __init__(self, symbol, base_asset, info):
+        """
+        symbol: 交易對名稱
+        base_asset: 資產名稱
+        info: 交易所 API 取得的相關交易限制或參數
+        """
+
+        self.symbol = symbol
+        self.base_asset = base_asset
+        self.info = info
+
+    def __str__(self):
+        return f"{self.symbol} ({self.base_asset})"
+
 
 class Crypto:
     # 建構式
@@ -66,7 +103,11 @@ class Crypto:
         return self.client.get_historical_klines(symbol, KLINE_INTERVAL, fromdate, todate)
         print(self.client.response)
 
-    def get_equities_balance(self, watching_symbols, cash_asset):
+    def get_equities_balance(
+        self,
+        watching_symbols: List[WatchingSymbol],
+        cash_asset: str
+    ) -> Dict[str, AssetBalance]:
         """取得所有資產的餘額，交易用的現金 (aka. cash_asset) 餘額也會包含在內"""
 
         account = self.get_account()
@@ -158,34 +199,3 @@ class Kline:
         self.number_of_trades = int(dict[8])
         self.taker_buy_base_asset_volume = float(dict[9])
         self.taker_buy_quote_asset_volume = float(dict[10])
-
-
-class AssetBalance:
-    """資產餘額"""
-
-    def __init__(self, dict):
-        """
-        dict: {
-            'asset': 'BTC', // 資產名
-            'free': '0.00000000', // 可動用
-            'locked': '0.00000000' // 交易凍結
-        }
-        """
-
-        self.asset = dict['asset']
-        self.free = Decimal(dict['free'])
-        self.locked = Decimal(dict['locked'])
-
-
-class WatchingSymbol:
-    """監視中的交易對"""
-
-    def __init__(self, symbol, base_asset, info):
-        """symbol: 交易對名稱，base_asset: 資產名稱"""
-
-        self.symbol = symbol
-        self.base_asset = base_asset
-        self.info = info
-
-    def __str__(self):
-        return f"{self.symbol} ({self.base_asset})"

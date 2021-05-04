@@ -63,8 +63,8 @@ class CryptoReport:
 
 config = Config()
 report = CryptoReport(config)
-transaction = position.Transaction(1620011227094, SIDE_BUY, "DOGE", "DOGEUSDT", Decimal('36.60000000'), Decimal('0.38157000'), Decimal('0.00001676'), 'BNB', Decimal('0.05'), "4", [])
+transaction = position.Transaction(1620011227094, SIDE_BUY, "DOGE", "DOGEUSDT", Decimal('36.60000000'), Decimal('0.38157000'), Decimal('0.00001676'), 'BNB', Decimal('0.05'), "1", "4", [])
 report.add_transaction(transaction)
 report.update_market_price(WatchingSymbol("DOGEUSDT", "DOGE", None))
-# transaction = position.Transaction(1620011227094, SIDE_SELL, "DOGE", "DOGEUSDT", Decimal('36.60000000'), Decimal('0.39157000'), Decimal('0.00001676'), 'BNB', Decimal('0.05'), "6", [])
+# transaction = position.Transaction(1620011227094, SIDE_SELL, "DOGE", "DOGEUSDT", Decimal('36.60000000'), Decimal('0.39157000'), Decimal('0.00001676'), 'BNB', Decimal('0.05'), "10", "6", [])
 # report.add_transaction(transaction)
