@@ -1,6 +1,6 @@
 {
-    "API_KEY":"your api key",
-    "API_SECRET":"your api secret",
-    "GOOGLE_SHEET_KEY":"your google sheet key",
-    "GOOGLE_SHEET_NAME":"your google sheet page name"
+    "API_KEY": "your api key",
+    "API_SECRET": "your api secret",
+    "GOOGLE_SHEET_KEY": "your google sheet key",
+    "GOOGLE_SHEET_NAME": "your google sheet page name"
 }

@@ -106,7 +106,7 @@ ENV/
 # personalized settings
 user-config/analyzer-parameters.json
 user-config/auth.json
-user-config/exclude-coins.json
+user-config/position-manage.json
 user-config/credentials.json
 user-config/bot-parameters.json
 asset_positions/*

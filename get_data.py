@@ -11,20 +11,23 @@ if __name__ == '__main__':
     from config import *
     import send_order
 
-    # 交易用的貨幣，等同於買股票用的現金
-    cash_asset = "USDT"
-
-    # 每個幣種最多投入的資金
-    max_fund_per_currency = Decimal("20")
-
     # Some objects load from local file
     config = Config()
+
+    # 交易用的貨幣，等同於買股票用的現金
+    cash_currency = config.position_manage['cash_currency']
+
+    # 每個幣種最多投入的資金
+    max_fund_per_currency = Decimal(config.position_manage['max_fund_per_currency'])
+
+    # 要排除、不交易的貨幣
+    exclude_currencies = config.position_manage['exclude_currencies']
+
+    # 最多開倉的貨幣數量
+    max_open_positions = int(config.position_manage['max_open_positions'])
+
     crypto = Crypto(config)
     notif = config.spawn_nofification_platform()
-
-    # 印出倉位
-    # for k, v in record.positions.items():
-    #     print(v)
 
     # Analyzers
     rsi_analyzer = RSI_Analyzer(config)
@@ -33,12 +36,17 @@ if __name__ == '__main__':
     # Data fetched via API
     exchange_info = crypto.get_exchange_info()
     # print(exchange_info)
-    watching_symbols = crypto.get_tradable_symbols(cash_asset, config.exclude_coins)
-    equities_balance = crypto.get_equities_balance(watching_symbols, cash_asset)
-    record = file_based_asset_positions.AssetPositions(watching_symbols, cash_asset)
+    watching_symbols = crypto.get_tradable_symbols(cash_currency, exclude_currencies)
+    equities_balance = crypto.get_equities_balance(watching_symbols, cash_currency)
+    record = file_based_asset_positions.AssetPositions(watching_symbols, cash_currency)
     report = CryptoReport(config=config)
 
     # print(watching_symbols)
+
+    # 印出持倉
+    for k, v in record.positions.items():
+        if v.open_quantity > 0:
+            print(v)
 
     while True:
         tic = time.perf_counter()
@@ -46,7 +54,7 @@ if __name__ == '__main__':
         total_free_balance_as_cash_asset = Decimal('0')
         total_locked_balance_as_cash_asset = Decimal('0')
 
-        free_cash = equities_balance[cash_asset].free
+        free_cash = equities_balance[cash_currency].free
         print(f'Free cash: {free_cash}')
 
         market_price_dict = {}
@@ -74,17 +82,17 @@ if __name__ == '__main__':
 
                 print(f"[{trade_symbol}]: RSI = {trade_rsi}, WILLR = {trade_willr}")
                 try:
-                    if trade_rsi == Trade.BUY or trade_willr == Trade.BUY:
+                    if trade_willr == Trade.BUY:
                         # 確認剩餘的現金是否大於最大投入限額
                         # 若剩餘的現金小於限額，將剩餘現金投入
-                        free_cash = equities_balance[cash_asset].free
+                        free_cash = equities_balance[cash_currency].free
                         max_fund = free_cash.min(max_fund_per_currency)
 
                         trade_result = send_order.open_position_with_max_fund(
                             api_client=crypto,
                             base_asset=base_asset,
                             trade_symbol=trade_symbol,
-                            cash_asset=cash_asset,
+                            cash_asset=cash_currency,
                             max_fund=max_fund,
                             asset_position=record.positions[base_asset],
                             symbol_info=symbol_info,
@@ -94,12 +102,12 @@ if __name__ == '__main__':
                             report.add_transaction(trade_result.transactions)
                             for transaction in trade_result.transactions:
                                 print(transaction)
-                    elif trade_rsi == Trade.SELL or trade_willr == Trade.SELL:
+                    elif trade_willr == Trade.SELL:
                         trade_result = send_order.close_all_position(
                             api_client=crypto,
                             base_asset=base_asset,
                             trade_symbol=trade_symbol,
-                            cash_asset=cash_asset,
+                            cash_asset=cash_currency,
                             asset_position=record.positions[base_asset],
                             symbol_info=symbol_info,
                         )
@@ -119,15 +127,15 @@ if __name__ == '__main__':
                 print(e)
                 time.sleep(3)
 
-        # free_cash = equities_balance[cash_asset].free
-        # print(f"可用現貨估值 ({cash_asset}) = {total_free_balance_as_cash_asset}"
-        #     f", +{cash_asset} = {total_free_balance_as_cash_asset + free_cash_asset}")
-        # print(f"下單凍結現貨估值 ({cash_asset}) = {total_locked_balance_as_cash_asset}"
-        #     f", +{cash_asset} = {total_locked_balance_as_cash_asset + locked_cash_asset}")
+        # free_cash = equities_balance[cash_currency].free
+        # print(f"可用現貨估值 ({cash_currency}) = {total_free_balance_as_cash_asset}"
+        #     f", +{cash_currency} = {total_free_balance_as_cash_asset + free_cash_asset}")
+        # print(f"下單凍結現貨估值 ({cash_currency}) = {total_locked_balance_as_cash_asset}"
+        #     f", +{cash_currency} = {total_locked_balance_as_cash_asset + locked_cash_asset}")
 
         try:
             # 有買入或賣出時，從 API 更新餘額，取得最新的剩餘現金
-            equities_balance = crypto.get_equities_balance(watching_symbols, cash_asset)
+            equities_balance = crypto.get_equities_balance(watching_symbols, cash_currency)
         except  Exception as e:
             print(e)
 

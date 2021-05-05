@@ -1,0 +1,17 @@
+{
+    "cash_currency" : "USDT",
+    "max_fund_per_currency": "20",
+    "max_open_positions": "100",
+    "exclude_currencies": [
+        "DOGE",
+        "USDT",
+        "EUR",
+        "GBP",
+        "SUSD",
+        "TUSD",
+        "BUSD",
+        "USDC",
+        "PAX",
+        "AUD"
+    ]
+}

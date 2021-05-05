@@ -2,8 +2,9 @@ import json
 import os
 from importlib import import_module
 
+
 class Config:
-    """參數"""
+    """使用者參數"""
 
     def __init__(self):
         """建構式"""
@@ -18,9 +19,9 @@ class Config:
         with open(os.path.join(self.config_dir, "analyzer-parameters.json"), "r+") as json_file:
             self.analyzer = json.load(json_file)
 
-        # 要排除的貨幣
-        with open(os.path.join(self.config_dir, "exclude-coins.json"), "r+") as json_file:
-            self.exclude_coins = json.load(json_file)
+        # 倉位管理
+        with open(os.path.join(self.config_dir, "position-manage.json"), "r+") as json_file:
+            self.position_manage = json.load(json_file)
 
         # bot 參數
         with open(os.path.join(self.config_dir, "bot-parameters.json"), "r+") as json_file:
@@ -28,6 +29,10 @@ class Config:
 
     def spawn_nofification_platform(self):
         """根據設定參數產生通知平台"""
+
+        # 若未指定通知平台，就不產生
+        if 'platform' not in self.bot['platform'] or len(self.bot['platform']) < 1:
+            return None
 
         try:
             module_path = f"notification_platforms.{self.bot['platform']}"
