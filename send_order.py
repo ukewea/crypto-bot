@@ -1,8 +1,21 @@
 import file_based_asset_positions
 import position
-from crypto import *
+import crypto
 from binance.enums import *
 from decimal import Decimal
+
+
+class OrderResult:
+    def __init__(self):
+        self.ok = False
+        self.transactions = list()
+        self.raw_response = None
+
+    def Failure():
+        r = OrderResult()
+        r.ok = False
+        return r
+
 
 def open_position_with_max_fund(
     api_client: crypto.Crypto,
@@ -11,7 +24,7 @@ def open_position_with_max_fund(
     cash_asset: str,
     max_fund: Decimal,
     asset_position: position.Position,
-    symbol_info: dict
+    symbol_info: crypto.WatchingSymbol
 ) -> OrderResult:
     """
     開倉：限制最多買入金額，買入指定交易對
@@ -29,12 +42,14 @@ def open_position_with_max_fund(
         return OrderResult.Failure()
 
     # 計算買入的數量，用 order_quote_qty(..) 會買到小數點後面太多位，到時無法全部平倉
-    symbol_filters = symbol_info['filters']
+    symbol_filters = symbol_info.info['filters']
     filters_dict = dict()
     for f in symbol_filters:
         filters_dict[f['filterType']] = f
 
     # 先檢查資金是否滿足最小成交額需求
+    print(f"MIN_NOTIONAL dict: {filters_dict['MIN_NOTIONAL']}")
+
     min_notional = Decimal(filters_dict['MIN_NOTIONAL']['minNotional'])
     if (max_fund < min_notional):
         print(f"No enough cash to buy {base_asset} "
@@ -44,6 +59,7 @@ def open_position_with_max_fund(
     # 建立 Decimal 如果能傳字串就盡量傳字串，傳數字進來會有精度問題
     latest_price_api_call = api_client.get_latest_price(trade_symbol)
     latest_price = Decimal(latest_price_api_call['price'])
+    print(f'Latest price of {trade_symbol} = {latest_price}')
 
     lot_filter = filters_dict['LOT_SIZE']
     max_buyable_quantity = max_fund / latest_price
@@ -63,7 +79,10 @@ def open_position_with_max_fund(
         print(f"rounded_quantity exceeds maxQty {max_qty}, buy {max_qty} of {base_asset} instead")
         rounded_quantity = max_qty
 
-    order_ok, order = api_client.order_quote_qty(SIDE_BUY, rounded_quantity, symbol)
+    print(f"rounded_quantity = {rounded_quantity.normalize():f}")
+    print(f'notional = rounded_quantity * latest_price = {rounded_quantity * latest_price}')
+
+    order_ok, order = api_client.order_qty(SIDE_BUY, f'{rounded_quantity.normalize():f}', trade_symbol)
     if order_ok:
         ret = OrderResult()
         ret.ok = True
@@ -159,14 +178,3 @@ def add_transactions_to_position(
             print(f"SELL -{fill_qty} {fill_order_symbol} @{fill_price} {order_type}")
         else:
             print(f"{order_side} ?{fill_qty} {fill_order_symbol} @{fill_price} {order_type}")
-
-class OrderResult:
-    def __init__(self):
-        self.ok = False
-        self.transactions = list()
-        self.raw_response = None
-
-    def Failure() -> OrderResult:
-        r = OrderResult()
-        r.ok = False
-        return r

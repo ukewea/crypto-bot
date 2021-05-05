@@ -22,7 +22,7 @@ class RSI_Analyzer(Analyzer):
         cerebro.adddata(data)
         cerebro.addstrategy(RSI_Strategy)
         cerebro.run()
-        cerebro.plot()         
+        cerebro.plot()
 
     def Analyze(self, klines):
         """
@@ -30,7 +30,7 @@ class RSI_Analyzer(Analyzer):
         :param klines: K線資料
         :return: 建議交易行為 Trade.SELL || Trade.BUY || Trade.PASS
         """
-        closes = [candle.close for candle in klines]
+        closes = [float(candle.close) for candle in klines]
         np_closes = numpy.array(closes)
         rsi = talib.RSI(np_closes, self.PERIOD)
         last_rsi = rsi[-2]

@@ -15,11 +15,23 @@ class AssetBalance:
             'locked': '0.00000000' // 交易凍結
         }
         """
-
         self.asset = dict['asset']
         self.free = Decimal(dict['free'])
         self.locked = Decimal(dict['locked'])
 
+    def __str__(self):
+        return (
+            f"{{asset: '{self.asset}', "
+            f"free: '{self.free.normalize():f}', "
+            f"locked: '{self.locked.normalize():f}'}}"
+        )
+
+    def __repr__(self):
+        return (
+            f"{{asset: '{self.asset}', "
+            f"free: '{self.free.normalize():f}', "
+            f"locked: '{self.locked.normalize():f}'}}"
+        )
 
 class WatchingSymbol:
     """監視中的交易對"""
@@ -36,14 +48,19 @@ class WatchingSymbol:
         self.info = info
 
     def __str__(self):
-        return f"{self.symbol} ({self.base_asset})"
+        return f"{{symbol: '{self.symbol}', base_asset: '{self.base_asset}'}}"
 
+    def __repr__(self):
+        return f"{{symbol: '{self.symbol}', base_asset: '{self.base_asset}'}}"
 
 class Crypto:
-    # 建構式
     def __init__(self, config):
+        """建構式"""
         self.client = Client(
-            config.auth["API_KEY"], config.auth["API_SECRET"], testnet=True)
+            api_key=config.auth["API_KEY"],
+            api_secret=config.auth["API_SECRET"],
+            testnet=True
+        )
 
     def get_exchange_info(self):
         exchange_info = self.client.get_exchange_info()
@@ -189,13 +206,13 @@ class Kline:
         """
 
         self.open_time = int(dict[0])
-        self.open = float(dict[1])
-        self.high = float(dict[2])
-        self.low = float(dict[3])
-        self.close = float(dict[4])
-        self.volume = float(dict[5])
+        self.open = Decimal(dict[1])
+        self.high = Decimal(dict[2])
+        self.low = Decimal(dict[3])
+        self.close = Decimal(dict[4])
+        self.volume = Decimal(dict[5])
         self.close_time = int(dict[6])
-        self.quote_asset_volume = float(dict[7])
+        self.quote_asset_volume = Decimal(dict[7])
         self.number_of_trades = int(dict[8])
-        self.taker_buy_base_asset_volume = float(dict[9])
-        self.taker_buy_quote_asset_volume = float(dict[10])
+        self.taker_buy_base_asset_volume = Decimal(dict[9])
+        self.taker_buy_quote_asset_volume = Decimal(dict[10])

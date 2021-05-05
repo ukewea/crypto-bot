@@ -22,7 +22,7 @@ class WILLR_Analyzer(Analyzer):
         :param klines: K線資料
         :return: 建議交易行為 Trade.SELL || Trade.BUY || Trade.PASS
         """
-        highs, lows, closes = zip(*[(candle.high, candle.low, candle.close) for candle in klines])
+        highs, lows, closes = zip(*[(float(candle.high), float(candle.low), float(candle.close)) for candle in klines])
         willrs = talib.WILLR(numpy.array(highs), numpy.array(lows), numpy.array(closes), self.PERIOD)
         last_willr = willrs[-2]
         if last_willr >= self.OVERSELL:
@@ -31,14 +31,14 @@ class WILLR_Analyzer(Analyzer):
             return Trade.BUY
         else:
             return Trade.PASS
-    
+
     def Backtest(self, klines):
         cerebro = bt.Cerebro()
         data = klines
         cerebro.adddata(data)
         cerebro.addstrategy(WILLR_Strategy)
         cerebro.run()
-        cerebro.plot()         
+        cerebro.plot()
 
 class WILLR_Strategy(bt.Strategy):
     def __init__(self):
