@@ -14,7 +14,7 @@ class CryptoReport:
         self.sheet = self.__gsheet(google_sheet_key, goolge_sheet_name)
 
     def __gsheet(self, google_sheet_key, google_sheet_name):
-        gc = pygsheets.authorize(service_account_file='credentials.json')
+        gc = pygsheets.authorize(service_account_file=os.path.join(self.config.config_dir, 'credentials.json'))
         survey_url = f'https://docs.google.com/spreadsheets/d/{google_sheet_key}/'
         sh = gc.open_by_url(survey_url)
 

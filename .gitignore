@@ -104,9 +104,10 @@ ENV/
 .vscode/
 
 # personalized settings
-analyzer-parameters.json
-auth.json
-exclude-coins.json
-credentials.json
+user-config/analyzer-parameters.json
+user-config/auth.json
+user-config/exclude-coins.json
+user-config/credentials.json
+user-config/bot-parameters.json
 asset_positions/*
 history_klines/*
