@@ -40,11 +40,11 @@ class Position:
                 quantity=Decimal(transact['quantity']),
                 price=Decimal(transact['price']),
                 commission=Decimal(transact['commission']),
-                commission_asset=transact['commission_asset']),
+                commission_asset=transact['commission_asset'],
                 commission_as_usdt=Decimal(transact['commission_as_usdt']),
                 order_id=transact['order_id'],
                 trade_id=transact['trade_id'],
-                closed_trade_ids=transact['closed_trade_ids'])
+                closed_trade_ids=transact['closed_trade_ids']))
 
     def to_dict(self):
         # 輸出全部轉 string，保留數字精度
@@ -151,3 +151,6 @@ class Transaction:
             f"@{self.price.normalize()} {self.trade_symbol[len(self.symbol):]} COMMISSION {self.commission_as_usdt.normalize()} USDT "
             f"on {datetime.utcfromtimestamp(self.time/1000).strftime('%Y-%m-%d %H:%M:%S')} UTC"
         )
+
+    def __repr__(self):
+        return self.__str__()

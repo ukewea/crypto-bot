@@ -154,7 +154,7 @@ class Crypto:
         """送出指定交易數量的訂單"""
         try:
             print("sending order")
-            order = self.client.create_test_order(
+            order = self.client.create_order(
                 symbol=symbol,
                 side=side,
                 type=order_type,
@@ -171,7 +171,7 @@ class Crypto:
         """送出指定成交額的訂單"""
         try:
             print("sending order")
-            order = self.client.create_test_order(
+            order = self.client.create_order(
                 symbol=symbol,
                 side=side,
                 type=order_type,

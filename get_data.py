@@ -70,9 +70,11 @@ if __name__ == '__main__':
                 if trade_rsi == Trade.PASS and trade_willr == Trade.PASS:
                     continue
 
+                trade_rsi = Trade.SELL
+                trade_willr = Trade.SELL
                 print(f"[{trade_symbol}]: RSI = {trade_rsi}, WILLR = {trade_willr}")
 
-                if trade_rsi == Trade.BUY:
+                if trade_rsi == Trade.BUY and trade_willr == Trade.BUY:
                     # 確認剩餘的現金是否大於最大投入限額
                     # 若剩餘的現金小於限額，將剩餘現金投入
                     free_cash = equities_balance[cash_asset].free

@@ -1,6 +1,7 @@
 import file_based_asset_positions
 import position
 import crypto
+import copy
 from binance.enums import *
 from decimal import Decimal
 
@@ -108,14 +109,21 @@ def close_all_position(
         print(f"No {base_asset} to sell")
         return OrderResult.Failure()
 
+    print(f"{base_asset} open positoin: {open_quantity}")
+
     # 只平倉有紀錄的資產，避免平倉到不是自動開倉的部位
-    order_ok, order = crypto.order_qty(SIDE_SELL, open_quantity, trade_symbol)
+    order_ok, order = api_client.order_qty(SIDE_SELL, open_quantity, trade_symbol)
     if order_ok:
-       ret = OrderResult()
-       ret.ok = True
-       ret.raw_response = order
-       add_transactions_to_position(ret, api_client, base_asset, trade_symbol, cash_asset, asset_position, order)
-       return ret
+        # order filled:
+        # {'symbol': 'BNBUSDT', 'orderId': 854270, 'orderListId': -1, 'clientOrderId': 'FH0FsNLBSgFFwQVnb0xU6r', 'transactTime': 1620188399140, 'price': '0.00000000', 'origQty': '0.03000000', 'executedQty': '0.03000000', 'cummulativeQuoteQty': '13.90200000', 'status': 'FILLED', 'timeInForce': 'GTC', 'type': 'MARKET', 'side': 'SELL', 'fills': [{'price': '463.40000000', 'qty': '0.03000000', 'commission': '0.00000000', 'commissionAsset': 'USDT', 'tradeId': 365249}]}
+
+        # order not filled:
+        # {'symbol': 'XRPUSDT', 'orderId': 1292, 'orderListId': -1, 'clientOrderId': 'Fc1OgHu9AUrytFTQUJOT16', 'transactTime': 1620188400305, 'price': '0.00000000', 'origQty': '16.30000000', 'executedQty': '0.00000000', 'cummulativeQuoteQty': '0.00000000', 'status': 'EXPIRED', 'timeInForce': 'GTC', 'type': 'MARKET', 'side': 'SELL', 'fills': []}
+        ret = OrderResult()
+        ret.ok = True
+        ret.raw_response = order
+        add_transactions_to_position(ret, api_client, base_asset, trade_symbol, cash_asset, asset_position, order)
+        return ret
     else:
         print(f"Error while try buying {base_asset}: {str(order)}")
         return OrderResult.Failure()
@@ -146,7 +154,7 @@ def add_transactions_to_position(
         # 若手續費不是以 USDT 計價，轉換為 USDT
         if fill_commission_asset != cash_asset:
             commision_to_cash_price = commision_to_cash_prices.get(fill_commission_asset, None)
-            if value is None:
+            if commision_to_cash_price is None:
                 trade_symbol_commission = f"{fill_commission_asset}{cash_asset}"
                 latest_commision_to_cash_price_api_call = api_client.get_latest_price(trade_symbol_commission)
                 commision_to_cash_price = Decimal(latest_commision_to_cash_price_api_call['price'])
@@ -171,10 +179,4 @@ def add_transactions_to_position(
             closed_trade_ids=[])
         asset_position.add_transaction(transaction)
         order_result.transactions.append(copy.deepcopy(transaction))
-
-        if order_side == SIDE_BUY:
-            print(f"BOT +{fill_qty} {fill_order_symbol} @{fill_price} {order_type}")
-        elif order_side == SIDE_SELL:
-            print(f"SELL -{fill_qty} {fill_order_symbol} @{fill_price} {order_type}")
-        else:
-            print(f"{order_side} ?{fill_qty} {fill_order_symbol} @{fill_price} {order_type}")
+        print(transaction)
