@@ -37,6 +37,7 @@ def open_position_with_max_fund(
     asset_position: 資產目前倉位結構
     symbol_info: 交易對在交易所內的交易情況、交易限制等資訊
     """
+
     open_quantity = asset_position.open_quantity
     if open_quantity > 0:
         print(f"Already HODLING {base_asset} ({open_quantity}), skip the buy")
@@ -104,6 +105,7 @@ def close_all_position(
     symbol_info: dict
 ) -> OrderResult:
     """全部平倉某資產"""
+
     open_quantity = asset_position.open_quantity
     if open_quantity <= 0:
         print(f"No {base_asset} to sell")
