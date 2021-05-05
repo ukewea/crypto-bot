@@ -59,7 +59,7 @@ class Crypto:
         self.client = Client(
             api_key=config.auth["API_KEY"],
             api_secret=config.auth["API_SECRET"],
-            testnet=True
+            testnet=False
         )
 
     def get_exchange_info(self):
