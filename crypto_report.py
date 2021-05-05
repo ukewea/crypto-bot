@@ -19,48 +19,79 @@ class CryptoReport:
         sh = gc.open_by_url(survey_url)
 
         sheet = sh.worksheet_by_title(google_sheet_name)
-        # scopes = ["https://spreadsheets.google.com/feeds"]
-        # credentials = ServiceAccountCredentials.from_json_keyfile_name(
-        #     "credentials.json", scopes)
-        # client = gspread.authorize(credentials)
-        # sheet = client.open_by_key(
-        #     google_sheet_key).worksheet(google_sheet_name)
-
-        #cells = sheet.get_as_df(start="D1")
-        #print(cells)
-        #cells.iloc[-1]['利潤'] = 10
-        #sheet.set_dataframe(cells, 'D1')
-        #print(cells.[-1][''])
-        # cells[1].value = 5
-        # sheet.update_cells(cells)
-
         return sheet
 
-    def add_transaction(self, transaction):
-        # print(transaction)
-        # 交易中幣種市價	幣種	幣幣對	買入價格	賣出價格	數量	手續費(USDT)	利潤
-        if transaction.activity == SIDE_BUY:
+    def add_transaction(self, transactions):
+        if len(transactions) <= 0:
+            return
+
+        trade_average_price = Decimal(0)
+        trade_quantity = Decimal(0)
+        trade_commission = Decimal(0)
+        trade_total_cost = Decimal(0)
+        for transaction in transactions:
+            trade_total_cost += transaction.price * transaction.quantity
+            trade_quantity += transaction.quantity
+            trade_commission += transaction.commission_as_usdt
+
+        trade_average_price = trade_total_cost / trade_quantity
+        if trade_commission == 0:
+            trade_commission = Decimal(0)
+
+        # 未實現損益 交易中幣種市價	幣種 幣幣對	買入成本 買入價格 賣出價格 數量 手續費(USDT) 利潤
+        if transactions[0].activity == SIDE_BUY:
             # 買入就Append一筆新的紀錄
             df = self.sheet.get_as_df(start="D1", numerize=False)
-            df = df.append(pd.DataFrame([["", transaction.price, transaction.symbol, transaction.trade_symbol, transaction.price, "", transaction.quantity, transaction.commission_as_usdt, ""]], columns=df.columns))
+            df = df.append(pd.DataFrame([["",
+                                        "",
+                                        transactions[0].symbol,
+                                        transactions[0].trade_symbol,
+                                        trade_average_price * trade_quantity,
+                                        trade_average_price,
+                                        "",
+                                        trade_quantity,
+                                        trade_commission,
+                                        ""]], columns=df.columns))
             self.sheet.set_dataframe(df, 'D1')
-        elif transaction.activity == SIDE_SELL:
+        elif transactions[0].activity == SIDE_SELL:
             # 賣出就修改原有的紀錄
-            df = self.sheet.get_as_df(start="D1", numerize=False)
-            row =df.loc[(df['交易中幣種市價'] != "") & (df['幣種'] == transaction.symbol) & (df['幣幣對'] == transaction.trade_symbol)].head(1)
-            profit = Decimal(transaction.price) - Decimal(row['買入價格'].values[0]) - Decimal(row['手續費(USDT)'].values[0])
-            df.loc[(df['交易中幣種市價'] != "") & (df['幣種'] == transaction.symbol) & (df['幣幣對'] == transaction.trade_symbol), ['未實現損益', '賣出價格', '交易中幣種市價', '利潤']] = ["", transaction.price, "", profit]
-            self.sheet.set_dataframe(df, 'D1')
+            try:
+                df = self.sheet.get_as_df(start="D1", numerize=False)
+                row =df.loc[(df['交易中幣種市價'] != "") & (df['幣種'] == transactions[0].symbol) & (df['幣幣對'] == transactions[0].trade_symbol)].head(1)
+                profit = Decimal((Decimal(trade_average_price) - Decimal(row['買入價格'].values[0])) * Decimal(trade_quantity) - Decimal(row['手續費(USDT)'].values[0]))
+                df.loc[(df['交易中幣種市價'] != "") & (df['幣種'] == transactions[0].symbol) & (df['幣幣對'] == transactions[0].trade_symbol), ['未實現損益', '賣出價格', '交易中幣種市價', '利潤']] = ["", trade_average_price, "", profit]
+                self.sheet.set_dataframe(df, 'D1')
+            except Exception as e:
+                pass
         else:
-            print(f"Unknown transaction activity {transaction.activity}")
+            print(f"Unknown transaction activity {transactions[0].activity}")
 
-    def update_market_price(self, watchingSymbol):
-        crypto = Crypto(self.config)
-        latest_price = crypto.get_latest_price(watchingSymbol.symbol)
+    def update_market_price(self, watchingSymbol, latest_price):
+        try:
+            df = self.sheet.get_as_df(start="D1", numerize=False)
+            row =df.loc[(df['賣出價格'] == "") & (df['幣種'] == watchingSymbol.base_asset) & (df['幣幣對'] == watchingSymbol.symbol)].head(1)
+            profit = Decimal('{:f}'.format((Decimal(row['數量'].values[0]) * (Decimal(latest_price) - Decimal(row['買入價格'].values[0])) - Decimal(row['手續費(USDT)'].values[0]))))
+            if profit == 0:
+                profit = Decimal(0)
+            df.loc[(df['賣出價格'] == "") & (df['幣種'] == watchingSymbol.base_asset) & (df['幣幣對'] == watchingSymbol.symbol), ['未實現損益', '交易中幣種市價']] = [profit, latest_price]
+            print(f'df:{df}')
+            self.sheet.set_dataframe(df, 'D1')
+        except Exception as e:
+            pass
+
+    def update_market_price(self, market_price_dict):
         df = self.sheet.get_as_df(start="D1", numerize=False)
-        row =df.loc[(df['交易中幣種市價'] != "") & (df['幣種'] == transaction.symbol) & (df['幣幣對'] == transaction.trade_symbol)].head(1)
-        profit = Decimal(latest_price['price']) - Decimal(row['買入價格'].values[0]) - Decimal(row['手續費(USDT)'].values[0])
-        df.loc[(df['賣出價格'] == "") & (df['幣種'] == watchingSymbol.base_asset) & (df['幣幣對'] == watchingSymbol.symbol), ['未實現損益', '交易中幣種市價']] = [profit, latest_price['price']]
+        for watchingSymbol,latest_price in market_price_dict.items():
+            try:
+                row =df.loc[(df['賣出價格'] == "") & (df['幣種'] == watchingSymbol.base_asset) & (df['幣幣對'] == watchingSymbol.symbol)].head(1)
+                profit = Decimal('{:f}'.format((Decimal(row['數量'].values[0]) * (Decimal(latest_price) - Decimal(row['買入價格'].values[0])) - Decimal(row['手續費(USDT)'].values[0]))))
+                if profit == 0:
+                    profit = Decimal(0)
+                df.loc[(df['賣出價格'] == "") & (df['幣種'] == watchingSymbol.base_asset) & (df['幣幣對'] == watchingSymbol.symbol), ['未實現損益', '交易中幣種市價']] = [profit, latest_price]
+                print(f'df:{df}')
+            except Exception as e:
+                print(e)
+                pass
         self.sheet.set_dataframe(df, 'D1')
 
 if __name__ == '__main__':
