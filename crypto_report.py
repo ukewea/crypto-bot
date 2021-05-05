@@ -37,7 +37,7 @@ class CryptoReport:
         return sheet
 
     def add_transaction(self, transaction):
-        print(transaction)
+        # print(transaction)
         # 交易中幣種市價	幣種	幣幣對	買入價格	賣出價格	數量	手續費(USDT)	利潤
         if transaction.activity == SIDE_BUY:
             # 買入就Append一筆新的紀錄
@@ -63,10 +63,11 @@ class CryptoReport:
         df.loc[(df['賣出價格'] == "") & (df['幣種'] == watchingSymbol.base_asset) & (df['幣幣對'] == watchingSymbol.symbol), ['未實現損益', '交易中幣種市價']] = [profit, latest_price['price']]
         self.sheet.set_dataframe(df, 'D1')
 
-config = Config()
-report = CryptoReport(config)
-transaction = position.Transaction(1620011227094, SIDE_BUY, "DOGE", "DOGEUSDT", Decimal('36.60000000'), Decimal('0.38157000'), Decimal('0.00001676'), 'BNB', Decimal('0.05'), "1", "4", [])
-report.add_transaction(transaction)
-report.update_market_price(WatchingSymbol("DOGEUSDT", "DOGE", None))
-transaction = position.Transaction(1620011227094, SIDE_SELL, "DOGE", "DOGEUSDT", Decimal('36.60000000'), Decimal('0.39157000'), Decimal('0.00001676'), 'BNB', Decimal('0.05'), "10", "6", [])
-report.add_transaction(transaction)
+if __name__ == '__main__':
+    config = Config()
+    report = CryptoReport(config)
+    transaction = position.Transaction(1620011227094, SIDE_BUY, "DOGE", "DOGEUSDT", Decimal('36.60000000'), Decimal('0.38157000'), Decimal('0.00001676'), 'BNB', Decimal('0.05'), "1", "4", [])
+    report.add_transaction(transaction)
+    report.update_market_price(WatchingSymbol("DOGEUSDT", "DOGE", None))
+    transaction = position.Transaction(1620011227094, SIDE_SELL, "DOGE", "DOGEUSDT", Decimal('36.60000000'), Decimal('0.39157000'), Decimal('0.00001676'), 'BNB', Decimal('0.05'), "10", "6", [])
+    report.add_transaction(transaction)

@@ -7,9 +7,9 @@ if __name__ == '__main__':
     from Analyzer import *
     from crypto import *
     from binance.enums import *
+    from crypto_report import CryptoReport
     from config import *
     import send_order
-
 
     # 交易用的貨幣，等同於買股票用的現金
     cash_asset = "USDT"
@@ -70,9 +70,9 @@ if __name__ == '__main__':
                 if trade_rsi == Trade.PASS and trade_willr == Trade.PASS:
                     continue
 
-                trade_rsi = Trade.SELL
-                trade_willr = Trade.SELL
                 print(f"[{trade_symbol}]: RSI = {trade_rsi}, WILLR = {trade_willr}")
+                trade_rsi = Trade.BUY
+                trade_willr = Trade.BUY
 
                 if trade_rsi == Trade.BUY and trade_willr == Trade.BUY:
                     # 確認剩餘的現金是否大於最大投入限額
@@ -80,7 +80,7 @@ if __name__ == '__main__':
                     free_cash = equities_balance[cash_asset].free
                     max_fund = free_cash.min(max_fund_per_currency)
 
-                    buy_result = send_order.open_position_with_max_fund(
+                    trade_result = send_order.open_position_with_max_fund(
                         api_client=crypto,
                         base_asset=base_asset,
                         trade_symbol=trade_symbol,
@@ -89,8 +89,14 @@ if __name__ == '__main__':
                         asset_position=record.positions[base_asset],
                         symbol_info=symbol_info,
                     )
+
+                    if trade_result.ok:
+                        report = CryptoReport(config=config)
+                        report.add_transaction(trade_result.transactions)
+                        for transaction in trade_result.transactions:
+                            print(transaction)
                 elif trade_rsi == Trade.SELL and trade_willr == Trade.SELL:
-                    sell_result = send_order.close_all_position(
+                    trade_result = send_order.close_all_position(
                         api_client=crypto,
                         base_asset=base_asset,
                         trade_symbol=trade_symbol,
@@ -98,6 +104,12 @@ if __name__ == '__main__':
                         asset_position=record.positions[base_asset],
                         symbol_info=symbol_info,
                     )
+
+                    if trade_result.ok:
+                        report = CryptoReport(config=config)
+                        report.add_transaction(trade_result.transactions)
+                        for transaction in trade_result.transactions:
+                            print(transaction)
                 else:
                     continue
 

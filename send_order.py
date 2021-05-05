@@ -181,4 +181,4 @@ def add_transactions_to_position(
             closed_trade_ids=[])
         asset_position.add_transaction(transaction)
         order_result.transactions.append(copy.deepcopy(transaction))
-        print(transaction)
+        # print(transaction)
