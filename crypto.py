@@ -2,6 +2,10 @@ from binance.client import Client
 from binance.enums import *
 from decimal import Decimal
 from typing import Dict, List
+import logging.config
+
+
+log = logging.getLogger(__name__)
 
 
 class AssetBalance:

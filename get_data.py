@@ -1,4 +1,11 @@
 if __name__ == '__main__':
+    import logging.config
+    import os
+
+    # initialize logger before importing any other modules
+    os.makedirs('logs', mode=0o755, exist_ok=True)
+    logging.config.fileConfig(os.path.join('user-config', 'logging.ini'))
+
     import time
     from time import perf_counter
     import file_based_asset_positions
@@ -11,20 +18,27 @@ if __name__ == '__main__':
     from config import *
     import send_order
 
+    log = logging.getLogger(__name__)
+    log.info("Starting...")
+
     # Some objects load from local file
     config = Config()
 
     # 交易用的貨幣，等同於買股票用的現金
     cash_currency = config.position_manage['cash_currency']
+    log.info(f"Cash currency: {cash_currency}")
 
     # 每個幣種最多投入的資金
     max_fund_per_currency = Decimal(config.position_manage['max_fund_per_currency'])
-
-    # 要排除、不交易的貨幣
-    exclude_currencies = config.position_manage['exclude_currencies']
+    log.info(f"Max fund per currency: {max_fund_per_currency}")
 
     # 最多開倉的貨幣數量
     max_open_positions = int(config.position_manage['max_open_positions'])
+    log.info(f"Max open positions: {max_open_positions}")
+
+    # 要排除、不交易的貨幣
+    exclude_currencies = config.position_manage['exclude_currencies']
+    log.info(f"Excluded currencies: {exclude_currencies}")
 
     crypto = Crypto(config)
     notif = config.spawn_nofification_platform()
@@ -37,25 +51,26 @@ if __name__ == '__main__':
     exchange_info = crypto.get_exchange_info()
     # print(exchange_info)
     watching_symbols = crypto.get_tradable_symbols(cash_currency, exclude_currencies)
+    log.debug(f"Watching trading symbols: {watching_symbols}")
+
     equities_balance = crypto.get_equities_balance(watching_symbols, cash_currency)
     record = file_based_asset_positions.AssetPositions(watching_symbols, cash_currency)
     report = CryptoReport(config=config)
 
-    # print(watching_symbols)
-
     # 印出持倉
     for k, v in record.positions.items():
         if v.open_quantity > 0:
-            print(v)
+            log.info(f"Position from save file: {str(v)}")
 
     while True:
         tic = time.perf_counter()
+        log.debug("Starting a new round")
 
         total_free_balance_as_cash_asset = Decimal('0')
         total_locked_balance_as_cash_asset = Decimal('0')
 
         free_cash = equities_balance[cash_currency].free
-        print(f'Free cash: {free_cash}')
+        log.debug(f'Available {cash_currency}: {free_cash}')
 
         market_price_dict = {}
         for symbol_info in watching_symbols:
@@ -65,11 +80,11 @@ if __name__ == '__main__':
             asset_balance = equities_balance[base_asset]
             if asset_balance is None:
                 # 沒辦法看到該幣餘額，推斷帳號無法交易此幣，所以不計算策略
-                print(f"Cannot get {base_asset} balance in your account")
+                log.warn(f"Cannot get {base_asset} balance in your account, skip analyzing of this currency")
                 continue
 
             try:
-                # print(f'[{trade_symbol}] Downloading K lines')
+                log.debug(f'[{trade_symbol}] Downloading K lines')
                 klines = crypto.get_klines(trade_symbol, 20)
                 latest_quote = klines[-1].close
                 total_free_balance_as_cash_asset += asset_balance.free * latest_quote
@@ -80,7 +95,7 @@ if __name__ == '__main__':
                 # if trade_rsi == Trade.PASS and trade_willr == Trade.PASS:
                 #     continue
 
-                print(f"[{trade_symbol}]: RSI = {trade_rsi}, WILLR = {trade_willr}")
+                log.debug(f"[{trade_symbol}]: RSI = {trade_rsi}, WILLR = {trade_willr}")
                 try:
                     if trade_willr == Trade.BUY:
                         # 確認剩餘的現金是否大於最大投入限額
@@ -101,7 +116,7 @@ if __name__ == '__main__':
                         if trade_result.ok:
                             report.add_transaction(trade_result.transactions)
                             for transaction in trade_result.transactions:
-                                print(transaction)
+                                log.info(transaction)
                     elif trade_willr == Trade.SELL:
                         trade_result = send_order.close_all_position(
                             api_client=crypto,
@@ -142,8 +157,13 @@ if __name__ == '__main__':
         report.update_market_price(market_price_dict)
         toc = time.perf_counter()
         time_elapsed = toc - tic
-        print(f"Download quotes & technical analysis took {time_elapsed:0.4f} seconds")
+        log.debug(f"Round ended, took {time_elapsed:0.4f} seconds")
+
+        if os.path.exists("stoppp"):
+            log.info("stop file detected, break the loop")
+            break
+
         cool_down_time = 60 - time_elapsed
         if cool_down_time > 0:
-            print(f"Sleep {cool_down_time} before next loop")
+            log.debug(f"Sleep {cool_down_time} before next round")
             time.sleep(cool_down_time)

@@ -1,6 +1,10 @@
 import json
 import os
 from importlib import import_module
+import logging.config
+
+
+log = logging.getLogger(__name__)
 
 
 class Config:

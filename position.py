@@ -2,6 +2,10 @@ import json
 from binance.enums import *
 from decimal import Decimal
 from datetime import datetime
+import logging.config
+
+
+log = logging.getLogger(__name__)
 
 
 class Position:

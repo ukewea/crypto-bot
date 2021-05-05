@@ -5,6 +5,11 @@ from crypto import *
 from config import *
 from binance.enums import *
 from decimal import Decimal
+import logging.config
+
+
+log = logging.getLogger(__name__)
+
 
 class CryptoReport:
     def __init__(self, config):
@@ -93,6 +98,7 @@ class CryptoReport:
                 print(e)
                 pass
         self.sheet.set_dataframe(df, 'D1')
+
 
 if __name__ == '__main__':
     # do some test

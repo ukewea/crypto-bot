@@ -4,6 +4,10 @@ import crypto
 import copy
 from binance.enums import *
 from decimal import Decimal
+import logging.config
+
+
+log = logging.getLogger(__name__)
 
 
 class OrderResult:
@@ -181,4 +185,3 @@ def add_transactions_to_position(
             closed_trade_ids=[])
         asset_position.add_transaction(transaction)
         order_result.transactions.append(copy.deepcopy(transaction))
-        # print(transaction)
