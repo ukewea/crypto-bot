@@ -64,15 +64,16 @@ if __name__ == '__main__':
 
     while True:
         tic = time.perf_counter()
-        log.debug("Starting a new round")
+        log.debug("Starting new round")
 
         total_free_balance_as_cash_asset = Decimal('0')
         total_locked_balance_as_cash_asset = Decimal('0')
 
         free_cash = equities_balance[cash_currency].free
         log.debug(f'Available {cash_currency}: {free_cash}')
-
         market_price_dict = {}
+        notify_msgs = []
+
         for symbol_info in watching_symbols:
             trade_symbol = symbol_info.symbol
             base_asset = symbol_info.base_asset
@@ -80,7 +81,7 @@ if __name__ == '__main__':
             asset_balance = equities_balance[base_asset]
             if asset_balance is None:
                 # 沒辦法看到該幣餘額，推斷帳號無法交易此幣，所以不計算策略
-                log.warn(f"Cannot get {base_asset} balance in your account, skip analyzing of this currency")
+                log.warning(f"Cannot get {base_asset} balance in your account, skip analyzing this currency")
                 continue
 
             try:
@@ -117,6 +118,8 @@ if __name__ == '__main__':
                             report.add_transaction(trade_result.transactions)
                             for transaction in trade_result.transactions:
                                 log.info(transaction)
+                                if notif is not None:
+                                    notify_msgs.append(str(transaction))
                     elif trade_willr == Trade.SELL:
                         trade_result = send_order.close_all_position(
                             api_client=crypto,
@@ -130,7 +133,9 @@ if __name__ == '__main__':
                         if trade_result.ok:
                             report.add_transaction(trade_result.transactions)
                             for transaction in trade_result.transactions:
-                                print(transaction)
+                                log.info(transaction)
+                                if notif is not None:
+                                    notify_msgs.append(str(transaction))
                     else:
                         continue
                 finally:
@@ -138,9 +143,13 @@ if __name__ == '__main__':
                     market_price_dict[symbol_info] = latest_quote
                     # report.update_market_price(symbol_info, latest_quote)
 
-            except Exception as e:
-                print(e)
+            except:
+                logging.exception("Catched an exception in trading symbol loop")
                 time.sleep(3)
+            finally:
+                if os.path.exists("stoppp"):
+                    log.warning("stop file detected, break trading symbol loop")
+                    break
 
         # free_cash = equities_balance[cash_currency].free
         # print(f"可用現貨估值 ({cash_currency}) = {total_free_balance_as_cash_asset}"
@@ -150,9 +159,14 @@ if __name__ == '__main__':
 
         try:
             # 有買入或賣出時，從 API 更新餘額，取得最新的剩餘現金
+            log.debug(f"Fetching latest {cash_currency} balance from exchange")
             equities_balance = crypto.get_equities_balance(watching_symbols, cash_currency)
+
+            # 跑完一輪後再一次送出全部的交易
+            if notif is not None and len(notify_msgs) > 0:
+                notif.send_messages(notify_msgs)
         except  Exception as e:
-            print(e)
+            logging.exception(f"Catched an exception while Fetching latest {cash_currency} balance from exchange")
 
         report.update_market_price(market_price_dict)
         toc = time.perf_counter()
@@ -160,10 +174,10 @@ if __name__ == '__main__':
         log.debug(f"Round ended, took {time_elapsed:0.4f} seconds")
 
         if os.path.exists("stoppp"):
-            log.info("stop file detected, break the loop")
+            log.warning("stop file detected, break the outer loop")
             break
 
         cool_down_time = 60 - time_elapsed
         if cool_down_time > 0:
-            log.debug(f"Sleep {cool_down_time} before next round")
+            log.debug(f"Sleep {cool_down_time} seconds before next round")
             time.sleep(cool_down_time)

@@ -109,5 +109,7 @@ user-config/auth.json
 user-config/position-manage.json
 user-config/credentials.json
 user-config/bot-parameters.json
+user-config/logging.ini
 asset_positions/*
 history_klines/*
+logs/*

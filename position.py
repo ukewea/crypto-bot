@@ -90,10 +90,10 @@ class Position:
 
     def __str__(self):
         if self.open_quantity > 0:
-            return f"{str(self.asset_symbol)}: {str(self.open_quantity)} @{str(self.open_cost)}"
-            f", realized = {str(self.realized_gain)}"
+            return f"{str(self.asset_symbol)}: {self.open_quantity.normalize():f} @{self.open_cost.normalize():f}"
+            f", realized = {self.realized_gain.normalize():f}"
 
-        return f"{str(self.asset_symbol)}: no position, realized = {str(self.realized_gain)}"
+        return f"{str(self.asset_symbol)}: no position, realized = {self.realized_gain.normalize():f}"
 
 
 class Transaction:
@@ -125,7 +125,7 @@ class Transaction:
         self.trade_id = trade_id
 
         if activity == SIDE_SELL and (closed_trade_ids is None or len(closed_trade_ids) < 1):
-            print("Warning: closed_trade_ids not specified for a SELL transaction")
+            log.warning(f"closed_trade_ids in SELL transaction {trade_id} is empty")
 
         if closed_trade_ids is None:
             self.closed_trade_ids = []
@@ -151,8 +151,8 @@ class Transaction:
 
     def __str__(self):
         return (
-            f"TRANSACTION {self.activity} {self.quantity.normalize()} {self.symbol} "
-            f"@{self.price.normalize()} {self.trade_symbol[len(self.symbol):]} COMMISSION {self.commission_as_usdt.normalize()} USDT "
+            f"TXN {self.activity} {self.quantity.normalize()} {self.symbol} "
+            f"@{self.price.normalize()} {self.trade_symbol[len(self.symbol):]} FEE {self.commission_as_usdt.normalize()} USDT "
             f"on {datetime.utcfromtimestamp(self.time/1000).strftime('%Y-%m-%d %H:%M:%S')} UTC"
         )
 

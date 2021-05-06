@@ -35,7 +35,8 @@ class Config:
         """根據設定參數產生通知平台"""
 
         # 若未指定通知平台，就不產生
-        if 'platform' not in self.bot['platform'] or len(self.bot['platform']) < 1:
+        if 'platform' not in self.bot or len(self.bot['platform']) < 1:
+            log.warning("No notification platform specified, skip spawning")
             return None
 
         try:

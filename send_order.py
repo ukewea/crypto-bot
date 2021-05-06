@@ -42,31 +42,33 @@ def open_position_with_max_fund(
     symbol_info: 交易對在交易所內的交易情況、交易限制等資訊
     """
 
+    log.debug(f"[{trade_symbol}] Entering buy process")
+
     open_quantity = asset_position.open_quantity
     if open_quantity > 0:
-        print(f"Already HODLING {base_asset} ({open_quantity}), skip the buy")
+        log.debug(f"[{trade_symbol}] Already holds {base_asset} ({open_quantity.normalize():f}), skip the buy")
         return OrderResult.Failure()
 
-    # 計算買入的數量，用 order_quote_qty(..) 會買到小數點後面太多位，到時無法全部平倉
     symbol_filters = symbol_info.info['filters']
     filters_dict = dict()
     for f in symbol_filters:
         filters_dict[f['filterType']] = f
 
     # 先檢查資金是否滿足最小成交額需求
-    print(f"MIN_NOTIONAL dict: {filters_dict['MIN_NOTIONAL']}")
-
-    min_notional = Decimal(filters_dict['MIN_NOTIONAL']['minNotional'])
+    min_notional_dict = filters_dict['MIN_NOTIONAL']
+    # print(f"MIN_NOTIONAL dict: {min_notional_dict}")
+    min_notional = Decimal(min_notional_dict['minNotional'])
     if (max_fund < min_notional):
-        print(f"No enough cash to buy {base_asset} "
-        f"(minNotional = {min_notional}, our budget = {max_fund}")
+        log.warning(f"[{trade_symbol}] No enough cash to send a BUY order"
+        f" (minNotional = {min_notional}, our budget = {max_fund}")
         return OrderResult.Failure()
 
     # 建立 Decimal 如果能傳字串就盡量傳字串，傳數字進來會有精度問題
     latest_price_api_call = api_client.get_latest_price(trade_symbol)
     latest_price = Decimal(latest_price_api_call['price'])
-    print(f'Latest price of {trade_symbol} = {latest_price}')
+    # print(f'Latest price of {trade_symbol} = {latest_price}')
 
+    # 計算買入的數量，用 order_quote_qty(..) 會買到小數點後面太多位，到時無法全部平倉
     lot_filter = filters_dict['LOT_SIZE']
     max_buyable_quantity = max_fund / latest_price
     min_qty = Decimal(lot_filter['minQty'])
@@ -74,29 +76,32 @@ def open_position_with_max_fund(
     step_size = Decimal(lot_filter['stepSize'])
 
     if max_buyable_quantity < min_qty:
-        print(f"Cannot purchase enough quantity of {base_asset} to meet minQty "
-        f"(minQty = {min_notional}, our max_buyable_quantity = {max_buyable_quantity}")
+        log.warning(f"[{trade_symbol}] Cannot purchase enough quantity of {base_asset} to meet minQty"
+            f" (min qty = {min_qty}, our max qty = {max_buyable_quantity}")
         return OrderResult.Failure()
 
     # 移除 stepSize 無法整除的部份，賣出時才能全部平倉
     rounded_quantity = max_buyable_quantity - (max_buyable_quantity % step_size)
 
     if rounded_quantity > max_qty:
-        print(f"rounded_quantity exceeds maxQty {max_qty}, buy {max_qty} of {base_asset} instead")
+        log.debug(f"[{trade_symbol}] Desired BUY qty '{rounded_quantity}' exceeds limit, buy '{max_qty}' instead")
         rounded_quantity = max_qty
 
-    print(f"rounded_quantity = {rounded_quantity.normalize():f}")
-    print(f'notional = rounded_quantity * latest_price = {rounded_quantity * latest_price}')
+    log.debug(f"[{trade_symbol}] BUY qty = {rounded_quantity.normalize():f}"
+        f", estimated cost = (qty * latest_quote) = {(rounded_quantity * latest_price).normalize():f}")
 
+    log.debug(f"[{trade_symbol}] Sending BUY order to exchange")
     order_ok, order = api_client.order_qty(SIDE_BUY, f'{rounded_quantity.normalize():f}', trade_symbol)
+
     if order_ok:
         ret = OrderResult()
         ret.ok = True
         ret.raw_response = order
+        log.debug(f"[{trade_symbol}] BUY order sent successfully, adding transaction to database")
         add_transactions_to_position(ret, api_client, base_asset, trade_symbol, cash_asset, asset_position, order)
         return ret
     else:
-        print(f"Error while try buying {base_asset}: {str(order)}")
+        log.error(f"[{trade_symbol}] Error while sending BUY order ({str(order)})")
         return OrderResult.Failure()
 
 
@@ -110,14 +115,15 @@ def close_all_position(
 ) -> OrderResult:
     """全部平倉某資產"""
 
+    log.debug(f"[{trade_symbol}] Entering sell process")
+
     open_quantity = asset_position.open_quantity
     if open_quantity <= 0:
-        print(f"No {base_asset} to sell")
+        log.debug(f"[{trade_symbol}] No {base_asset} can sell")
         return OrderResult.Failure()
 
-    print(f"{base_asset} open positoin: {open_quantity}")
-
     # 只平倉有紀錄的資產，避免平倉到不是自動開倉的部位
+    log.debug(f"[{trade_symbol}] Sending SELL order to exchange, qty = {open_quantity.normalize():f}")
     order_ok, order = api_client.order_qty(SIDE_SELL, open_quantity, trade_symbol)
     if order_ok:
         # order filled:
@@ -128,10 +134,11 @@ def close_all_position(
         ret = OrderResult()
         ret.ok = True
         ret.raw_response = order
+        log.debug(f"[{trade_symbol}] SELL order sent successfully, adding transaction to database")
         add_transactions_to_position(ret, api_client, base_asset, trade_symbol, cash_asset, asset_position, order)
         return ret
     else:
-        print(f"Error while try buying {base_asset}: {str(order)}")
+        log.error(f"[{trade_symbol}] Error while sending SELL order ({str(order)})")
         return OrderResult.Failure()
 
 def add_transactions_to_position(

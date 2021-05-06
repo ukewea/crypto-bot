@@ -157,34 +157,34 @@ class Crypto:
     def order_qty(self, side, quantity, symbol, order_type=ORDER_TYPE_MARKET):
         """送出指定交易數量的訂單"""
         try:
-            print("sending order")
+            log.debug(f"[order_qty] sending order")
             order = self.client.create_order(
                 symbol=symbol,
                 side=side,
                 type=order_type,
                 quantity=quantity)
 
-            print(order)
+            log.debug(f"[order_qty] raw response: {order}")
             return (True, order)
         except Exception as e:
-            print("an exception occured - {}".format(e))
+            log.error(f"[order_qty] an exception occurred - {e}")
             return (False, None)
 
 
     def order_quote_qty(self, side, quoteOrderQty, symbol, order_type=ORDER_TYPE_MARKET):
         """送出指定成交額的訂單"""
         try:
-            print("sending order")
+            log.debug(f"[order_quote_qty] sending order")
             order = self.client.create_order(
                 symbol=symbol,
                 side=side,
                 type=order_type,
                 quoteOrderQty=quoteOrderQty)
 
-            print(order)
+            log.debug(f"[order_quote_qty] raw response: {order}")
             return (True, order)
         except Exception as e:
-            print("an exception occured - {}".format(e))
+            log.error(f"[order_quote_qty] an exception occurred - {e}")
             return (False, None)
 
 
