@@ -72,20 +72,7 @@ class CryptoReport:
             except Exception as e:
                 pass
         else:
-            print(f"Unknown transaction activity {transactions[0].activity}")
-
-    def update_market_price(self, watching_symbol, latest_price):
-        try:
-            df = self.sheet.get_as_df(start="D1", numerize=False)
-            row =df.loc[(df['賣出價格'] == "") & (df['幣種'] == watching_symbol.base_asset) & (df['幣幣對'] == watching_symbol.symbol)].head(1)
-            profit = Decimal('{:f}'.format((Decimal(row['數量'].values[0]) * (Decimal(latest_price) - Decimal(row['買入價格'].values[0])) - Decimal(row['手續費(USDT)'].values[0]))))
-            if profit == 0:
-                profit = Decimal(0)
-            df.loc[(df['賣出價格'] == "") & (df['幣種'] == watching_symbol.base_asset) & (df['幣幣對'] == watching_symbol.symbol), ['未實現損益', '交易中幣種市價']] = [profit, latest_price]
-            print(f'df:{df}')
-            self.sheet.set_dataframe(df, 'D1')
-        except Exception as e:
-            pass
+            log.error(f"Unknown transaction activity {transactions[0].activity}")
 
     def update_market_price(self, market_price_dict):
         df = self.sheet.get_as_df(start="D1", numerize=False)
@@ -96,10 +83,11 @@ class CryptoReport:
                 if profit == 0:
                     profit = Decimal(0)
                 df.loc[(df['賣出價格'] == "") & (df['幣種'] == watching_symbol.base_asset) & (df['幣幣對'] == watching_symbol.symbol), ['未實現損益', '交易中幣種市價']] = [profit, latest_price]
-                print(f'df:{df}')
             except Exception as e:
                 print(e)
                 pass
+
+        log.debug(f'df:{df}')
         self.sheet.set_dataframe(df, 'D1')
 
 
