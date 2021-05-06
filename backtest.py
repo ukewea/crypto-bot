@@ -35,5 +35,5 @@ if __name__ == '__main__':
         #todate = datetime.datetime.strptime('2020-07-12', '%Y-%m-%d')
         csv_path = os.path.join(BASE_DIR, f'{symbol}.csv')
         data = bt.feeds.GenericCSVData(dataname=csv_path, dtformat=2, compression=15, timeframe=bt.TimeFrame.Minutes)#, fromdate=fromdate, todate=todate)
-        #willr_analyzer.Backtest(data)
-        rsi_analyzer.Backtest(data)
+        willr_analyzer.Backtest(data)
+        #rsi_analyzer.Backtest(data)

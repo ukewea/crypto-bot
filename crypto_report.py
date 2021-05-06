@@ -6,7 +6,7 @@ from config import *
 from binance.enums import *
 from decimal import Decimal
 import logging.config
-
+from datetime import datetime
 
 log = logging.getLogger(__name__)
 
@@ -43,7 +43,7 @@ class CryptoReport:
         if trade_commission == 0:
             trade_commission = Decimal(0)
 
-        # 未實現損益 交易中幣種市價	幣種 幣幣對	買入成本 買入價格 賣出價格 數量 手續費(USDT) 利潤
+        # 未實現損益 交易中幣種市價	幣種 幣幣對	買入成本 買入價格 賣出價格 買入時間	賣出時間 數量 手續費(USDT) 利潤
         if transactions[0].activity == SIDE_BUY:
             # 買入就Append一筆新的紀錄
             df = self.sheet.get_as_df(start="D1", numerize=False)
@@ -56,6 +56,8 @@ class CryptoReport:
                                         "",
                                         trade_quantity,
                                         trade_commission,
+                                        "",
+                                        datetime.utcfromtimestamp(transactions[0].time/1000).strftime('%Y-%m-%d %H:%M:%S'),
                                         ""]], columns=df.columns))
             self.sheet.set_dataframe(df, 'D1')
         elif transactions[0].activity == SIDE_SELL:
@@ -63,8 +65,9 @@ class CryptoReport:
             try:
                 df = self.sheet.get_as_df(start="D1", numerize=False)
                 row =df.loc[(df['交易中幣種市價'] != "") & (df['幣種'] == transactions[0].symbol) & (df['幣幣對'] == transactions[0].trade_symbol)].head(1)
-                profit = Decimal((Decimal(trade_average_price) - Decimal(row['買入價格'].values[0])) * Decimal(trade_quantity) - Decimal(row['手續費(USDT)'].values[0]))
-                df.loc[(df['交易中幣種市價'] != "") & (df['幣種'] == transactions[0].symbol) & (df['幣幣對'] == transactions[0].trade_symbol), ['未實現損益', '賣出價格', '交易中幣種市價', '利潤']] = ["", trade_average_price, "", profit]
+                fee = Decimal(row['手續費(USDT)'].values[0]) + trade_commission
+                profit = Decimal((Decimal(trade_average_price) - Decimal(row['買入價格'].values[0])) * Decimal(trade_quantity) - fee)
+                df.loc[(df['交易中幣種市價'] != "") & (df['幣種'] == transactions[0].symbol) & (df['幣幣對'] == transactions[0].trade_symbol), ['未實現損益', '賣出價格', '交易中幣種市價', '利潤', '手續費(USDT)', '賣出時間']] = ["", trade_average_price, "", profit, fee, datetime.utcfromtimestamp(transactions[0].time/1000).strftime('%Y-%m-%d %H:%M:%S')]
                 self.sheet.set_dataframe(df, 'D1')
             except Exception as e:
                 pass

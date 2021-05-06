@@ -1,6 +1,11 @@
 import abc
 from enum import Enum
 import backtrader as bt
+import logging.config
+
+
+log = logging.getLogger(__name__)
+
 
 class Trade(Enum):
      PASS = 0

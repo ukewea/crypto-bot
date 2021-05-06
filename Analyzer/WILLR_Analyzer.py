@@ -3,6 +3,11 @@ import numpy
 from .analyzer import *
 from config import *
 import backtrader as bt
+import logging.config
+
+
+log = logging.getLogger(__name__)
+
 
 class WILLR_Analyzer(Analyzer):
     # 建構式
