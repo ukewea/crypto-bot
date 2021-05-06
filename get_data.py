@@ -4,6 +4,8 @@ if __name__ == '__main__':
 
     # initialize logger before importing any other modules
     os.makedirs('logs', mode=0o755, exist_ok=True)
+    os.makedirs('logs-debug', mode=0o755, exist_ok=True)
+
     logging.config.fileConfig(os.path.join('user-config', 'logging.ini'))
 
     import time
@@ -141,7 +143,6 @@ if __name__ == '__main__':
                 finally:
                     time.sleep(0.5)
                     market_price_dict[symbol_info] = latest_quote
-                    # report.update_market_price(symbol_info, latest_quote)
 
             except:
                 logging.exception("Catched an exception in trading symbol loop")
@@ -168,7 +169,7 @@ if __name__ == '__main__':
         except  Exception as e:
             logging.exception(f"Catched an exception while Fetching latest {cash_currency} balance from exchange")
 
-        report.update_market_price(market_price_dict)
+        report.update_market_price(market_price_dict, record.positions)
         toc = time.perf_counter()
         time_elapsed = toc - tic
         log.debug(f"Round ended, took {time_elapsed:0.4f} seconds")
