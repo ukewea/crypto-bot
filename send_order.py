@@ -29,7 +29,8 @@ def open_position_with_max_fund(
     cash_asset: str,
     max_fund: Decimal,
     asset_position: position.Position,
-    symbol_info: crypto.WatchingSymbol
+    symbol_info: crypto.WatchingSymbol,
+    round_id: str
 ) -> OrderResult:
     """
     開倉：限制最多買入金額，買入指定交易對
@@ -46,7 +47,7 @@ def open_position_with_max_fund(
 
     open_quantity = asset_position.open_quantity
     if open_quantity > 0:
-        log.debug(f"[{trade_symbol}] Already holds {base_asset} ({open_quantity.normalize():f}), skip the buy")
+        log.debug(f"[{trade_symbol}] Already holds {base_asset} (qty {open_quantity.normalize():f}), skip the buy")
         return OrderResult.Failure()
 
     symbol_filters = symbol_info.info['filters']
@@ -59,7 +60,7 @@ def open_position_with_max_fund(
     # print(f"MIN_NOTIONAL dict: {min_notional_dict}")
     min_notional = Decimal(min_notional_dict['minNotional'])
     if (max_fund < min_notional):
-        log.warning(f"[{trade_symbol}] No enough cash to send a BUY order"
+        log.warning(f"[{trade_symbol}] No cash to send a BUY order"
         f" (minNotional = {min_notional}, our budget = {max_fund}")
         return OrderResult.Failure()
 
@@ -76,7 +77,7 @@ def open_position_with_max_fund(
     step_size = Decimal(lot_filter['stepSize'])
 
     if max_buyable_quantity < min_qty:
-        log.warning(f"[{trade_symbol}] Cannot purchase enough quantity of {base_asset} to meet minQty"
+        log.warning(f"[{trade_symbol}] Cannot meet minimum BUY qty requirement"
             f" (min qty = {min_qty}, our max qty = {max_buyable_quantity}")
         return OrderResult.Failure()
 
@@ -84,24 +85,32 @@ def open_position_with_max_fund(
     rounded_quantity = max_buyable_quantity - (max_buyable_quantity % step_size)
 
     if rounded_quantity > max_qty:
-        log.debug(f"[{trade_symbol}] Desired BUY qty '{rounded_quantity}' exceeds limit, buy '{max_qty}' instead")
+        log.debug(f"[{trade_symbol}] Desired BUY qty '{rounded_quantity}' exceeds limit, lower to '{max_qty}'")
         rounded_quantity = max_qty
 
     log.debug(f"[{trade_symbol}] BUY qty = {rounded_quantity.normalize():f}"
         f", estimated cost = (qty * latest_quote) = {(rounded_quantity * latest_price).normalize():f}")
 
     log.debug(f"[{trade_symbol}] Sending BUY order to exchange")
-    order_ok, order = api_client.order_qty(SIDE_BUY, f'{rounded_quantity.normalize():f}', trade_symbol)
+    order_ok, order = api_client.order_qty(
+        side=SIDE_BUY,
+        quantity=f'{rounded_quantity.normalize():f}',
+        symbol=trade_symbol,
+    )
 
     if order_ok:
+        if order['status'] != "FILLED":
+            log.warn(f"[{trade_symbol}] BUY order status is not FILLED, here's the response:")
+            log.warn(str(order))
+
         ret = OrderResult()
         ret.ok = True
         ret.raw_response = order
-        log.debug(f"[{trade_symbol}] BUY order sent successfully, adding transaction to database")
-        add_transactions_to_position(ret, api_client, base_asset, trade_symbol, cash_asset, asset_position, order)
+        log.debug(f"[{trade_symbol}] BUY order sent, adding transaction to database")
+        add_transactions_to_position(ret, api_client, base_asset, trade_symbol, cash_asset, asset_position, round_id, order)
         return ret
     else:
-        log.error(f"[{trade_symbol}] Error while sending BUY order ({str(order)})")
+        log.error(f"[{trade_symbol}] Error while sending BUY order")
         return OrderResult.Failure()
 
 
@@ -111,7 +120,8 @@ def close_all_position(
     trade_symbol: str,
     cash_asset: str,
     asset_position: position.Position,
-    symbol_info: dict
+    symbol_info: dict,
+    round_id: str
 ) -> OrderResult:
     """全部平倉某資產"""
 
@@ -119,26 +129,36 @@ def close_all_position(
 
     open_quantity = asset_position.open_quantity
     if open_quantity <= 0:
-        log.debug(f"[{trade_symbol}] No {base_asset} can sell")
+        log.debug(f"[{trade_symbol}] No {base_asset} to sell")
         return OrderResult.Failure()
 
     # 只平倉有紀錄的資產，避免平倉到不是自動開倉的部位
     log.debug(f"[{trade_symbol}] Sending SELL order to exchange, qty = {open_quantity.normalize():f}")
-    order_ok, order = api_client.order_qty(SIDE_SELL, open_quantity, trade_symbol)
+    order_ok, order = api_client.order_qty(
+        side=SIDE_SELL,
+        quantity=open_quantity,
+        symbol=trade_symbol,
+    )
+
     if order_ok:
         # order filled:
         # {'symbol': 'BNBUSDT', 'orderId': 854270, 'orderListId': -1, 'clientOrderId': 'FH0FsNLBSgFFwQVnb0xU6r', 'transactTime': 1620188399140, 'price': '0.00000000', 'origQty': '0.03000000', 'executedQty': '0.03000000', 'cummulativeQuoteQty': '13.90200000', 'status': 'FILLED', 'timeInForce': 'GTC', 'type': 'MARKET', 'side': 'SELL', 'fills': [{'price': '463.40000000', 'qty': '0.03000000', 'commission': '0.00000000', 'commissionAsset': 'USDT', 'tradeId': 365249}]}
 
         # order not filled:
         # {'symbol': 'XRPUSDT', 'orderId': 1292, 'orderListId': -1, 'clientOrderId': 'Fc1OgHu9AUrytFTQUJOT16', 'transactTime': 1620188400305, 'price': '0.00000000', 'origQty': '16.30000000', 'executedQty': '0.00000000', 'cummulativeQuoteQty': '0.00000000', 'status': 'EXPIRED', 'timeInForce': 'GTC', 'type': 'MARKET', 'side': 'SELL', 'fills': []}
+
+        if order['status'] != "FILLED":
+            log.warn(f"[{trade_symbol}] SELL order status is not FILLED, here's the response:")
+            log.warn(str(order))
+
         ret = OrderResult()
         ret.ok = True
         ret.raw_response = order
-        log.debug(f"[{trade_symbol}] SELL order sent successfully, adding transaction to database")
-        add_transactions_to_position(ret, api_client, base_asset, trade_symbol, cash_asset, asset_position, order)
+        log.debug(f"[{trade_symbol}] SELL order sent, adding transaction to database")
+        add_transactions_to_position(ret, api_client, base_asset, trade_symbol, cash_asset, asset_position, round_id, order)
         return ret
     else:
-        log.error(f"[{trade_symbol}] Error while sending SELL order ({str(order)})")
+        log.error(f"[{trade_symbol}] Error while sending SELL order")
         return OrderResult.Failure()
 
 def add_transactions_to_position(
@@ -148,6 +168,7 @@ def add_transactions_to_position(
     trade_symbol: str,
     cash_asset: str,
     asset_position: position.Position,
+    round_id: str,
     order: dict
 ):
     # {'symbol': 'DOGEUSDT', 'orderId': 786775885, 'orderListId': -1, 'clientOrderId': 'gQp1YKqpjVBMwlkUIcCgWV', 'transactTime': , 'price': '0.00000000', 'origQty': '36.60000000', 'executedQty': '36.60000000', 'cummulativeQuoteQty': '13.96546200', 'status': 'FILLED', 'timeInForce': 'GTC', 'type': 'MARKET', 'side': 'BUY', 'fills': [{'price': '0.38157000', 'qty': '36.60000000', 'commission': '0.00001676', 'commissionAsset': 'BNB', 'tradeId': 142837993}]}
@@ -187,6 +208,7 @@ def add_transactions_to_position(
             commission=Decimal(fill_commission),
             commission_asset=fill_commission_asset,
             commission_as_usdt=fill_commission_as_cash,
+            round_id=round_id,
             order_id=order_id,
             trade_id=fill['tradeId'],
             closed_trade_ids=[])

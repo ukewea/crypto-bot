@@ -114,3 +114,5 @@ asset_positions/*
 history_klines/*
 logs/*
 logs-debug/*
+stoppp
+_stoppp

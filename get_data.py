@@ -64,9 +64,14 @@ if __name__ == '__main__':
         if v.open_quantity > 0:
             log.info(f"Position from save file: {str(v)}")
 
-    while True:
+    keep_loop_running = True
+
+    while keep_loop_running:
         tic = time.perf_counter()
-        log.debug("Starting new round")
+
+        # 給這一輪的 transaction 一個 group ID
+        round_id = str(time.time_ns())
+        log.debug(f"Starting new round, round_id = {round_id}")
 
         total_free_balance_as_cash_asset = Decimal('0')
         total_locked_balance_as_cash_asset = Decimal('0')
@@ -74,7 +79,7 @@ if __name__ == '__main__':
         free_cash = equities_balance[cash_currency].free
         log.debug(f'Available {cash_currency}: {free_cash}')
         market_price_dict = {}
-        notify_msgs = []
+        transactions_made = []
 
         for symbol_info in watching_symbols:
             trade_symbol = symbol_info.symbol
@@ -114,6 +119,7 @@ if __name__ == '__main__':
                             max_fund=max_fund,
                             asset_position=record.positions[base_asset],
                             symbol_info=symbol_info,
+                            round_id=round_id,
                         )
 
                         if trade_result.ok:
@@ -121,7 +127,7 @@ if __name__ == '__main__':
                             for transaction in trade_result.transactions:
                                 log.info(transaction)
                                 if notif is not None:
-                                    notify_msgs.append(str(transaction))
+                                    transactions_made.append(transaction)
                     elif trade_willr == Trade.SELL:
                         trade_result = send_order.close_all_position(
                             api_client=crypto,
@@ -130,6 +136,7 @@ if __name__ == '__main__':
                             cash_asset=cash_currency,
                             asset_position=record.positions[base_asset],
                             symbol_info=symbol_info,
+                            round_id=round_id,
                         )
 
                         if trade_result.ok:
@@ -137,7 +144,7 @@ if __name__ == '__main__':
                             for transaction in trade_result.transactions:
                                 log.info(transaction)
                                 if notif is not None:
-                                    notify_msgs.append(str(transaction))
+                                    transactions_made.append(transaction)
                     else:
                         continue
                 finally:
@@ -150,6 +157,8 @@ if __name__ == '__main__':
             finally:
                 if os.path.exists("stoppp"):
                     log.warning("stop file detected, break trading symbol loop")
+                    os.rename("stoppp", "_stoppp")
+                    keep_loop_running = False
                     break
 
         # free_cash = equities_balance[cash_currency].free
@@ -162,19 +171,23 @@ if __name__ == '__main__':
             # 有買入或賣出時，從 API 更新餘額，取得最新的剩餘現金
             log.debug(f"Fetching latest {cash_currency} balance from exchange")
             equities_balance = crypto.get_equities_balance(watching_symbols, cash_currency)
+        except:
+            logging.exception(f"Catched an exception while fetching latest {cash_currency} balance from exchange")
 
-            # 跑完一輪後再一次送出全部的交易
-            if notif is not None and len(notify_msgs) > 0:
-                notif.send_messages(notify_msgs)
-        except  Exception as e:
-            logging.exception(f"Catched an exception while Fetching latest {cash_currency} balance from exchange")
+        try:
+            # 跑完一輪後再一次送出全部的交易通知
+            if notif is not None and len(transactions_made) > 0:
+                log.debug("Sending transactions notification")
+                notif.notify_transactions(transactions_made)
+        except:
+            logging.exception(f"Catched an exception while sending transactions notification")
 
         report.update_market_price(market_price_dict, record.positions)
         toc = time.perf_counter()
         time_elapsed = toc - tic
         log.debug(f"Round ended, took {time_elapsed:0.4f} seconds")
 
-        if os.path.exists("stoppp"):
+        if not keep_loop_running:
             log.warning("stop file detected, break the outer loop")
             break
 

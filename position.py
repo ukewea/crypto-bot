@@ -36,6 +36,10 @@ class Position:
 
         for transact in dict['transactions']:
             # print(transact)
+            round_id = None
+            if 'round_id' in transact and transact['round_id'] != "None":
+                round_id = transact['round_id']
+
             self.transactions.append(Transaction(
                 time=int(transact['time']),
                 activity=transact['activity'],
@@ -46,6 +50,7 @@ class Position:
                 commission=Decimal(transact['commission']),
                 commission_asset=transact['commission_asset'],
                 commission_as_usdt=Decimal(transact['commission_as_usdt']),
+                round_id=round_id,
                 order_id=transact['order_id'],
                 trade_id=transact['trade_id'],
                 closed_trade_ids=transact['closed_trade_ids']))
@@ -108,6 +113,7 @@ class Transaction:
         commission: Decimal,
         commission_asset: str,
         commission_as_usdt: Decimal,
+        round_id: str,
         order_id: str,
         trade_id: str,
         closed_trade_ids: list
@@ -121,6 +127,7 @@ class Transaction:
         self.commission = commission
         self.commission_asset = commission_asset
         self.commission_as_usdt = commission_as_usdt
+        self.round_id = round_id
         self.order_id = order_id
         self.trade_id = trade_id
 
@@ -144,17 +151,25 @@ class Transaction:
             'commission': str(self.commission),
             'commission_asset': str(self.commission_asset),
             'commission_as_usdt': str(self.commission_as_usdt),
+            'round_id': self.round_id,
             'order_id': str(self.order_id),
             'trade_id': str(self.trade_id),
             'closed_trade_ids': self.closed_trade_ids
         }
 
-    def __str__(self):
-        return (
-            f"TXN {self.activity} {self.quantity.normalize()} {self.symbol} "
+    def to_str(self, withdate=True):
+        s = (
+            f"TX {self.activity} {self.quantity.normalize()} {self.symbol} "
             f"@{self.price.normalize()} {self.trade_symbol[len(self.symbol):]} FEE {self.commission_as_usdt.normalize()} USDT "
-            f"on {datetime.utcfromtimestamp(self.time/1000).strftime('%Y-%m-%d %H:%M:%S')} UTC"
         )
 
+        if withdate:
+            s += f"on {datetime.utcfromtimestamp(self.time/1000).strftime('%Y-%m-%d %H:%M:%S')} UTC"
+
+        return s
+
+    def __str__(self):
+        return self.to_str(withdate=True)
+
     def __repr__(self):
-        return self.__str__()
+        return self.to_str(withdate=True)

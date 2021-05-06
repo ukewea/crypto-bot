@@ -13,5 +13,12 @@ class Bot:
 
         self.send_message(text.rstrip())
 
+    def notify_transactions(self, transactions):
+        text = ''
+        for t in transactions:
+            text = text + t.to_str(withdate=False) + "\n\n"
+
+        self.send_message(text.rstrip())
+
     def send_message(self, text):
         self.bot.sendMessage(chat_id=self.channel_id, text=text)
