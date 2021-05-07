@@ -99,7 +99,7 @@ if __name__ == '__main__':
                 total_locked_balance_as_cash_asset += asset_balance.locked * latest_quote
 
                 trade_rsi = rsi_analyzer.Analyze(klines)
-                trade_willr = willr_analyzer.Analyze(klines)
+                trade_willr = willr_analyzer.Analyze(klines, record.positions[base_asset])
                 # if trade_rsi == Trade.PASS and trade_willr == Trade.PASS:
                 #     continue
 
