@@ -5,7 +5,7 @@ from datetime import datetime
 import logging.config
 
 
-log = logging.getLogger(__name__)
+_log = logging.getLogger(__name__)
 
 
 class Position:
@@ -132,8 +132,8 @@ class Transaction:
         self.trade_id = trade_id
 
         if activity == SIDE_SELL and (closed_trade_ids is None or len(closed_trade_ids) < 1):
-            log.warning(f"closed_trade_ids in SELL transaction {trade_id} is empty")
-
+            # _log.warning(f"closed_trade_ids in SELL transaction {trade_id} is empty")
+            pass
         if closed_trade_ids is None:
             self.closed_trade_ids = []
         else:

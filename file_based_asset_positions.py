@@ -4,7 +4,7 @@ import json
 import logging.config
 
 
-log = logging.getLogger(__name__)
+_log = logging.getLogger(__name__)
 
 
 class AssetPositions:
@@ -51,16 +51,16 @@ class AssetPositions:
 
         if not os.path.exists(record_path):
             self.positions[asset_symbol] = Position(asset_symbol, self.__on_position_update, None)
-            log.debug(f"{asset_symbol} position file does not exist, skip loading ({record_path})")
+            _log.debug(f"{asset_symbol} position file does not exist, skip loading ({record_path})")
             return
 
         with open(record_path, "r+") as json_file:
-            log.debug(f"{asset_symbol} position file exists, loading ({record_path})")
+            _log.debug(f"{asset_symbol} position file exists, loading ({record_path})")
             self.positions[asset_symbol] = Position(asset_symbol, self.__on_position_update, json.load(json_file))
 
     def __on_position_update(self, asset_symbol):
         record_path = AssetPositions.__get_record_path(asset_symbol)
-        log.debug(f"__on_position_update, writing to {record_path}")
+        _log.debug(f"__on_position_update, writing to {record_path}")
 
         with open(record_path, 'w') as outfile:
             position = self.positions[asset_symbol]

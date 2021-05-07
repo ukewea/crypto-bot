@@ -4,7 +4,7 @@ import backtrader as bt
 import logging.config
 
 
-log = logging.getLogger(__name__)
+_log = logging.getLogger(__name__)
 
 
 class Trade(Enum):
