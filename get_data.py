@@ -141,7 +141,7 @@ if __name__ == '__main__':
 
             try:
                 _log.debug(f'[{trade_symbol}] Downloading K lines')
-                klines = crypto.get_klines(trade_symbol, 20)
+                klines = crypto.get_klines(trade_symbol, 500)
                 latest_quote = klines[-1].close
 
                 trade_rsi = rsi_analyzer.Analyze(klines)
