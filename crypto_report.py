@@ -8,7 +8,7 @@ from decimal import Decimal
 import logging.config
 from datetime import datetime
 
-log = logging.getLogger(__name__)
+_log = logging.getLogger(__name__)
 
 
 class CryptoReport:
@@ -72,21 +72,21 @@ class CryptoReport:
             except Exception as e:
                 pass
         else:
-            log.error(f"Unknown transaction activity {transactions[0].activity}")
+            _log.error(f"Unknown transaction activity {transactions[0].activity}")
 
     def update_market_price(self, market_price_dict, positions):
-        log.debug('Updating market price on Google Sheet')
+        _log.debug('Updating market price on Google Sheet')
 
         df = self.sheet.get_as_df(start="D1", numerize=False)
         for watching_symbol, latest_price in market_price_dict.items():
             currency_symbol = watching_symbol.base_asset
             # 若目前未持倉就不更新市價
             if currency_symbol not in positions or positions[currency_symbol].open_quantity <= 0:
-                log.debug(f"No open position of {currency_symbol}, skip updating the market price on Google Sheet")
+                _log.debug(f"No open position of {currency_symbol}, skip updating the market price on Google Sheet")
                 continue
 
             try:
-                log.debug(f"Updating the market price of {currency_symbol} on Google Sheet")
+                _log.debug(f"Updating the market price of {currency_symbol} on Google Sheet")
 
                 row =df.loc[(df['賣出價格'] == "") & (df['幣種'] == watching_symbol.base_asset) & (df['幣幣對'] == watching_symbol.symbol)].head(1)
                 profit = Decimal('{:f}'.format((Decimal(row['數量'].values[0]) * (Decimal(latest_price) - Decimal(row['買入價格'].values[0])) - Decimal(row['手續費(USDT)'].values[0]))))
@@ -94,9 +94,9 @@ class CryptoReport:
                     profit = Decimal(0)
                 df.loc[(df['賣出價格'] == "") & (df['幣種'] == watching_symbol.base_asset) & (df['幣幣對'] == watching_symbol.symbol), ['未實現損益', '交易中幣種市價']] = [profit, latest_price]
             except Exception as e:
-                log.exception("Catched an exception while updating market price on Google Sheet")
+                _log.exception("Catched an exception while updating market price on Google Sheet")
 
-        log.debug(f'df:{df}')
+        _log.debug(f'df:{df}')
         self.sheet.set_dataframe(df, 'D1')
 
 

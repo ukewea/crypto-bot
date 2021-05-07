@@ -4,7 +4,7 @@ from importlib import import_module
 import logging.config
 
 
-log = logging.getLogger(__name__)
+_log = logging.getLogger(__name__)
 
 
 class Config:
@@ -36,7 +36,7 @@ class Config:
 
         # 若未指定通知平台，就不產生
         if 'platform' not in self.bot or len(self.bot['platform']) < 1:
-            log.warning("No notification platform specified, skip spawning")
+            _log.warning("No notification platform specified, skip spawning")
             return None
 
         try:
