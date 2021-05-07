@@ -8,9 +8,9 @@ _log = logging.getLogger(__name__)
 
 
 class Trade(Enum):
-     PASS = 0
-     BUY = 1
-     SELL = 2
+    PASS = 0
+    BUY = 1
+    SELL = 2
 
 class Analyzer(metaclass=abc.ABCMeta):
     # 建構式
