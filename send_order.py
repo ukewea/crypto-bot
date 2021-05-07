@@ -88,13 +88,16 @@ def open_position_with_max_fund(
         log.debug(f"[{trade_symbol}] Desired BUY qty '{rounded_quantity}' exceeds limit, lower to '{max_qty}'")
         rounded_quantity = max_qty
 
-    log.debug(f"[{trade_symbol}] BUY qty = {rounded_quantity.normalize():f}"
-        f", estimated cost = (qty * latest_quote) = {(rounded_quantity * latest_price).normalize():f}")
-
-    log.debug(f"[{trade_symbol}] Sending BUY order to exchange")
+    rounded_qty_str = f"{rounded_quantity.normalize():f}"
+    log.debug(
+        f"[{trade_symbol}] Sending BUY order to exchange"
+        f", BUY qty = '{rounded_qty_str}'"
+        f", estimated cost = (qty * latest_quote) = '{(rounded_quantity * latest_price).normalize():f}'"
+        f" (commissions not included)"
+    )
     order_ok, order = api_client.order_qty(
         side=SIDE_BUY,
-        quantity=f'{rounded_quantity.normalize():f}',
+        quantity=f'{rounded_qty_str}',
         symbol=trade_symbol,
     )
 
@@ -133,10 +136,11 @@ def close_all_position(
         return OrderResult.Failure()
 
     # 只平倉有紀錄的資產，避免平倉到不是自動開倉的部位
-    log.debug(f"[{trade_symbol}] Sending SELL order to exchange, qty = {open_quantity.normalize():f}")
+    open_qty_str = f"{open_quantity.normalize():f}"
+    log.debug(f"[{trade_symbol}] Sending SELL order to exchange, qty = '{open_qty_str}'")
     order_ok, order = api_client.order_qty(
         side=SIDE_SELL,
-        quantity=open_quantity,
+        quantity=open_qty_str,
         symbol=trade_symbol,
     )
 
