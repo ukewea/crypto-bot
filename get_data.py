@@ -237,10 +237,11 @@ if __name__ == '__main__':
 
                 acc_transaction_count_before_notify_free_cash += len(transactions_made)
                 if acc_transaction_count_before_notify_free_cash >= 20:
-                    tx_q.put(QueueTask(TaskType.NOTIFY_CASH_BALANCE, f"{free_cash.normalize():f} {cash_currency}"))
+                    if notif is not None:
+                        tx_q.put(QueueTask(TaskType.NOTIFY_CASH_BALANCE, f"{free_cash.normalize():f} {cash_currency}"))
                     acc_transaction_count_before_notify_free_cash = 0
 
-                time.sleep(3)
+                time.sleep(1)
         except:
             logging.exception(f"Catched an exception while fetching latest {cash_currency} balance from exchange")
 
