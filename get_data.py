@@ -141,7 +141,7 @@ if __name__ == '__main__':
 
             try:
                 _log.debug(f'[{trade_symbol}] Downloading K lines')
-                klines = crypto.get_klines(trade_symbol, 500)
+                klines = crypto.get_klines(trade_symbol, 250)
                 latest_quote = klines[-1].close
 
                 trade_rsi = rsi_analyzer.Analyze(klines)
@@ -189,7 +189,7 @@ if __name__ == '__main__':
                     else:
                         continue
                 finally:
-                    time.sleep(0.5)
+                    time.sleep(0.1)
                     market_price_dict[symbol_info] = latest_quote
 
             except:

@@ -30,7 +30,7 @@ class WILLR_Analyzer(Analyzer):
         highs, lows, closes = zip(*[(float(candle.high), float(candle.low), float(candle.close)) for candle in klines])
         willrs = talib.WILLR(numpy.array(highs), numpy.array(lows), numpy.array(closes), self.PERIOD)
         upper, middle, lower = talib.BBANDS(numpy.array(closes), timeperiod=200, nbdevup=2, nbdevdn=2, matype=0)
-        last_willr = willrs[-2]
+        last_willr = willrs[-1]
         if last_willr >= self.OVERSELL and position.open_quantity > 0:
             buyPrice = 0
             buyQuantity = 0
@@ -64,13 +64,11 @@ class WILLR_Strategy(bt.Strategy):
         self.UNDERBUY = config.analyzer["WILLR"]["underbuy"]
         self.WILLR = bt.indicators.WilliamsR(self.data, period = self.PERIOD)
         self.boll = bt.indicators.BollingerBands(period=200, devfactor=2)
-        # self.sma5 = bt.indicators.SMA(self.data, period=25)
-        # self.sma10 = bt.indicators.SMA(self.data, period=50)
     def next(self):
         if self.WILLR[0] >= self.OVERSELL and self.position: # 已持倉:
-            if self.data.close[0] < self.boll.lines.mid[0] and self.data.close[0] > self.position.price:
+            if self.data.close[0] < self.boll.lines.mid[0] and self.data.close[0] > self.position.price: # 賺錢
                 return
-            else:
+            else: # 虧錢
                 self.close()
 
         if self.WILLR[0] <= self.UNDERBUY and not self.position: # 未持倉:
