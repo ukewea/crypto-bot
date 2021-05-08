@@ -236,7 +236,7 @@ if __name__ == '__main__':
                 equities_balance = crypto.get_equities_balance(watching_symbols, cash_currency)
 
                 acc_transaction_count_before_notify_free_cash += len(transactions_made)
-                if acc_transaction_count_before_notify_free_cash >= 100:
+                if acc_transaction_count_before_notify_free_cash >= 20:
                     tx_q.put(QueueTask(TaskType.NOTIFY_CASH_BALANCE, f"{free_cash.normalize():f} {cash_currency}"))
                     acc_transaction_count_before_notify_free_cash = 0
 
