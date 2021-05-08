@@ -1,15 +1,40 @@
 import telegram
 import logging.config
-
+import threading
+import queue
+from . import bot_abc
+from . import queue_task
 
 _log = logging.getLogger(__name__)
 
 
-class Bot:
+class Bot(bot_abc.Bot):
     def __init__(self, config):
         _log.debug("init a Telegram bot")
         self.bot = telegram.Bot(token=config['telegram_bot']['bot_token'])
         self.channel_id = config['telegram_bot']['channel_id']
+
+    def start_worker_thread(self, rx_q, tx_q):
+        def worker():
+            while True:
+                try:
+                    item = rx_q.get()
+                    if item.task_type == queue_task.TaskType.NOTIFY_TX:
+                        _log.debug("Sending transactions notification")
+                        self.notify_transactions(item.payload)
+                    elif item.task_type == queue_task.TaskType.STOP_WORKER_THREAD:
+                        break
+                    elif item.task_type == queue_task.TaskType.NOTIFY_CASH_BALANCE:
+                        self.send_message(f"Cash balance: {item.payload}")
+                    else:
+                        _log.error(f"Unknown TaskType {item.task_type}")
+                except:
+                    _log.exception("Error while processing queue")
+                finally:
+                    rx_q.task_done()
+
+        # turn-on the worker thread
+        threading.Thread(target=worker, daemon=True).start()
 
     def send_messages(self, texts):
         text = ''

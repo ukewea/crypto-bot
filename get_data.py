@@ -10,15 +10,19 @@ logging.config.fileConfig(os.path.join('user-config', 'logging.ini'))
 import time
 from time import perf_counter
 import file_based_asset_positions
-import position
+import queue
 from decimal import Decimal
+from binance.enums import *
+from typing import List
+import position
 from Analyzer import *
 from crypto import *
-from binance.enums import *
 from crypto_report import CryptoReport
 from config import *
-from typing import List
 import send_order
+from notification_platforms.queue_task import *
+
+_log = logging.getLogger(__name__)
 
 
 def __process_order_result(
@@ -71,7 +75,7 @@ def __cal_new_cash_balance(
 
 if __name__ == '__main__':
     _log = logging.getLogger(__name__)
-    _log.info("Starting...")
+    _log.info("App starts")
 
     # Some objects load from local file
     config = Config()
@@ -94,6 +98,11 @@ if __name__ == '__main__':
 
     crypto = Crypto(config)
     notif = config.spawn_nofification_platform()
+    tx_q = queue.Queue()
+    rx_q = queue.Queue()
+
+    if notif is not None:
+        notif.start_worker_thread(tx_q, rx_q)
 
     # Analyzers
     rsi_analyzer = RSI_Analyzer(config)
@@ -116,6 +125,9 @@ if __name__ == '__main__':
             _log.info(f"Position from save file: {str(v)}")
 
     keep_loop_running = True
+
+    # 當交易量達到一定數值後，向外發出目前剩餘的現金
+    acc_transaction_count_before_notify_free_cash = 0
 
     while keep_loop_running:
         tic = time.perf_counter()
@@ -198,35 +210,49 @@ if __name__ == '__main__':
             finally:
                 if os.path.exists("stoppp"):
                     _log.warning("stop file detected, break trading symbol loop")
-                    os.rename("stoppp", "_stoppp")
                     keep_loop_running = False
+                    os.rename("stoppp", "_stoppp")
                     break
+        try:
+            # 跑完一輪後再一次送出全部的交易通知
+            if notif is not None and len(transactions_made) > 0:
+                tx_q.put(QueueTask(TaskType.NOTIFY_TX, transactions_made))
+        except:
+            logging.exception(f"Catched an exception while sending transactions notification")
+
+        report.update_market_price(market_price_dict, record.positions)
+
+        if not keep_loop_running:
+            _log.warning("stop file detected, break the outer loop")
+            toc = time.perf_counter()
+            time_elapsed = toc - tic
+            _log.debug(f"Round stopped early, took {time_elapsed:0.4f} seconds")
+            break
+
         try:
             if len(transactions_made) > 0:
                 # 有買入或賣出時，從 API 更新餘額，取得最新的剩餘現金
                 _log.debug(f"Fetching latest {cash_currency} balance from exchange")
                 equities_balance = crypto.get_equities_balance(watching_symbols, cash_currency)
+
+                acc_transaction_count_before_notify_free_cash += len(transactions_made)
+                if acc_transaction_count_before_notify_free_cash >= 20:
+                    tx_q.put(QueueTask(TaskType.NOTIFY_CASH_BALANCE, f"{free_cash.normalize():f} {cash_currency}"))
+                    acc_transaction_count_before_notify_free_cash = 0
+
+                time.sleep(3)
         except:
             logging.exception(f"Catched an exception while fetching latest {cash_currency} balance from exchange")
 
-        try:
-            # 跑完一輪後再一次送出全部的交易通知
-            if notif is not None and len(transactions_made) > 0:
-                _log.debug("Sending transactions notification")
-                notif.notify_transactions(transactions_made)
-        except:
-            logging.exception(f"Catched an exception while sending transactions notification")
-
-        report.update_market_price(market_price_dict, record.positions)
         toc = time.perf_counter()
         time_elapsed = toc - tic
         _log.debug(f"Round ended, took {time_elapsed:0.4f} seconds")
-
-        if not keep_loop_running:
-            _log.warning("stop file detected, break the outer loop")
-            break
 
         cool_down_time = 60 - time_elapsed
         if cool_down_time > 0:
             _log.debug(f"Sleep {cool_down_time} seconds before next round")
             time.sleep(cool_down_time)
+
+    tx_q.put(QueueTask(TaskType.STOP_WORKER_THREAD, None))
+    tx_q.join()
+    _log.debug("App exited")

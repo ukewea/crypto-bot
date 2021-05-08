@@ -71,7 +71,7 @@ class Position:
             self.open_cost += transaction.quantity * transaction.price
         elif transaction.activity == SIDE_SELL:
             current_avg_price = self.open_cost / self.open_quantity
-            purchase_cost = transaction.quantity * current_avg_price
+            purchase_cost = (transaction.quantity * self.open_cost) / self.open_quantity
             realized_gain = (transaction.price -
                              current_avg_price) * transaction.quantity
 
