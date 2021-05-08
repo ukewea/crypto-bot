@@ -22,6 +22,7 @@ from config import *
 import send_order
 from notification_platforms.queue_task import *
 
+
 _log = logging.getLogger(__name__)
 
 
@@ -37,8 +38,7 @@ def __process_order_result(
     report.add_transaction(trade_result.transactions)
     for tx in trade_result.transactions:
         _log.info(tx)
-        if notif is not None:
-            tx_made.append(tx)
+        tx_made.append(tx)
 
 def __cal_new_cash_balance(
     cash_now: Decimal,
@@ -230,18 +230,17 @@ if __name__ == '__main__':
             break
 
         try:
-            if len(transactions_made) > 0:
-                # 有買入或賣出時，從 API 更新餘額，取得最新的剩餘現金
-                _log.debug(f"Fetching latest {cash_currency} balance from exchange")
-                equities_balance = crypto.get_equities_balance(watching_symbols, cash_currency)
+            # 從 API 更新餘額，取得最新剩餘現金
+            _log.debug(f"Fetching latest {cash_currency} balance from exchange")
+            equities_balance = crypto.get_equities_balance(watching_symbols, cash_currency)
 
-                acc_transaction_count_before_notify_free_cash += len(transactions_made)
-                if acc_transaction_count_before_notify_free_cash >= 20:
-                    if notif is not None:
-                        tx_q.put(QueueTask(TaskType.NOTIFY_CASH_BALANCE, f"{free_cash.normalize():f} {cash_currency}"))
-                    acc_transaction_count_before_notify_free_cash = 0
+            acc_transaction_count_before_notify_free_cash += len(transactions_made)
+            if acc_transaction_count_before_notify_free_cash >= 20:
+                if notif is not None:
+                    tx_q.put(QueueTask(TaskType.NOTIFY_CASH_BALANCE, f"{free_cash.normalize():f} {cash_currency}"))
+                acc_transaction_count_before_notify_free_cash = 0
 
-                time.sleep(1)
+            time.sleep(1)
         except:
             logging.exception(f"Catched an exception while fetching latest {cash_currency} balance from exchange")
 

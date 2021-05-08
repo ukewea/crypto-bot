@@ -62,7 +62,7 @@ def open_position_with_max_fund(
     min_notional = Decimal(min_notional_dict['minNotional'])
     if (max_fund < min_notional):
         _log.warning(f"[{trade_symbol}] No cash to send a BUY order"
-        f" (minNotional = {min_notional}, our budget = {max_fund}")
+        f" (minNotional = {min_notional.normalize():f}, our budget = {max_fund.normalize():f}")
         return OrderResult.Failure(SIDE_BUY)
 
     # 建立 Decimal 如果能傳字串就盡量傳字串，傳數字進來會有精度問題
@@ -79,14 +79,14 @@ def open_position_with_max_fund(
 
     if max_buyable_quantity < min_qty:
         _log.warning(f"[{trade_symbol}] Cannot meet minimum BUY qty requirement"
-            f" (min qty = {min_qty}, our max qty = {max_buyable_quantity}")
+            f" (min qty = {min_qty.normalize():f}, our max qty = {max_buyable_quantity.normalize():f}")
         return OrderResult.Failure(SIDE_BUY)
 
     # 移除 stepSize 無法整除的部份，賣出時才能全部平倉
     rounded_quantity = max_buyable_quantity - (max_buyable_quantity % step_size)
 
     if rounded_quantity > max_qty:
-        _log.debug(f"[{trade_symbol}] Desired BUY qty '{rounded_quantity}' exceeds limit, lower to '{max_qty}'")
+        _log.debug(f"[{trade_symbol}] Desired BUY qty '{rounded_quantity.normalize():f}' exceeds limit, lower to '{max_qty.normalize():f}'")
         rounded_quantity = max_qty
 
     rounded_qty_str = f"{rounded_quantity.normalize():f}"

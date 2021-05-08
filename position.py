@@ -159,8 +159,8 @@ class Transaction:
 
     def to_str(self, withdate=True):
         s = (
-            f"TX {self.activity} {self.quantity.normalize()} {self.symbol} "
-            f"@{self.price.normalize()} {self.trade_symbol[len(self.symbol):]} FEE {self.commission_as_usdt.normalize()} USDT "
+            f"TX {self.activity} {self.quantity.normalize():f} {self.symbol} "
+            f"@{self.price.normalize():f} {self.trade_symbol[len(self.symbol):]} FEE {self.commission_as_usdt.normalize():f} USDT "
         )
 
         if withdate:
