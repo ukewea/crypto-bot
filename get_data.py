@@ -151,10 +151,11 @@ if __name__ == '__main__':
         if v.open_quantity > 0:
             _log.info(f"Position from save file: {str(v)}")
 
-    keep_loop_running = True
-
     # 當交易量達到一定數值後，向外發出目前剩餘的現金
     acc_transaction_count_before_notify_free_cash = 0
+
+    free_cash = equities_balance[cash_currency].free
+    keep_loop_running = True
 
     while keep_loop_running:
         tic = time.perf_counter()
@@ -163,7 +164,6 @@ if __name__ == '__main__':
         round_id = str(time.time_ns())
         _log.debug(f"Starting new round, round_id = {round_id}")
 
-        free_cash = equities_balance[cash_currency].free
         _log.debug(f'Available {cash_currency}: {free_cash}')
         market_price_dict = {}
         transactions_made = []
@@ -261,6 +261,7 @@ if __name__ == '__main__':
                     keep_loop_running = False
                     os.rename("stoppp", "_stoppp")
                     break
+
         try:
             # 跑完一輪後再一次送出全部的交易通知
             if notif is not None and len(transactions_made) > 0:
@@ -281,6 +282,7 @@ if __name__ == '__main__':
             # 從 API 更新餘額，取得最新剩餘現金
             _log.debug(f"Fetching latest {cash_currency} balance from exchange")
             equities_balance = crypto.get_equities_balance(watching_symbols, cash_currency)
+            free_cash = equities_balance[cash_currency].free
 
             acc_transaction_count_before_notify_free_cash += len(transactions_made)
             if acc_transaction_count_before_notify_free_cash >= 20:
