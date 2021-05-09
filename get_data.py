@@ -66,12 +66,31 @@ def __cal_new_cash_balance(
     elif trade_result.side == SIDE_SELL:
         cash_now += total_cost_cash
     else:
-        log.error(f"Cannot calculate new cash balance due to unknown trade_result.side {trade_result.side}")
+        log.error(f"Cannot calculate new cash balance due to unknown trade_result.side '{trade_result.side}'")
         return cash_now
 
     cash_now -= total_commission_cash
 
     return cash_now
+
+def __cal_total_open_position_count(record: file_based_asset_positions.AssetPositions):
+    total_open_count = int(0)
+
+    for k, v in record.positions.items():
+        if v.open_quantity > 0:
+            total_open_count += 1
+
+    return total_open_count
+
+def __cal_total_open_cost(record: file_based_asset_positions.AssetPositions):
+    total_open_cost = Decimal(0)
+
+    for k, v in record.positions.items():
+        if v.open_cost > 0:
+            total_open_cost += v.open_cost
+
+    return total_open_cost
+
 
 if __name__ == '__main__':
     _log = logging.getLogger(__name__)
@@ -89,8 +108,16 @@ if __name__ == '__main__':
     _log.info(f"Max fund per currency: {max_fund_per_currency}")
 
     # 最多開倉的貨幣數量
-    max_open_positions = int(config.position_manage['max_open_positions'])
-    _log.info(f"Max open positions: {max_open_positions}")
+    max_open_positions = None
+    if "max_open_positions" in config.position_manage:
+        max_open_positions = int(config.position_manage['max_open_positions'])
+        _log.info(f"Max open positions: {max_open_positions}")
+
+    # 最大投入成本
+    max_total_open_cost = None
+    if "max_total_open_cost" in config.position_manage:
+        max_total_open_cost = Decimal(config.position_manage['max_total_open_cost'])
+        _log.info(f"Max total open cost: {max_total_open_cost}")
 
     # 要排除、不交易的貨幣
     exclude_currencies = config.position_manage['exclude_currencies']
@@ -164,25 +191,46 @@ if __name__ == '__main__':
                 _log.debug(f"[{trade_symbol}] RSI = {trade_rsi}, WILLR = {trade_willr}")
                 try:
                     if trade_willr == Trade.BUY:
-                        # 確認剩餘的現金是否大於最大投入限額
-                        # 若剩餘的現金小於限額，將剩餘現金投入
-                        max_fund = free_cash.min(max_fund_per_currency)
+                        skip_buy = False
 
-                        trade_result = send_order.open_position_with_max_fund(
-                            api_client=crypto,
-                            base_asset=base_asset,
-                            trade_symbol=trade_symbol,
-                            cash_asset=cash_currency,
-                            max_fund=max_fund,
-                            asset_position=record.positions[base_asset],
-                            symbol_info=symbol_info,
-                            round_id=round_id,
-                        )
+                        if max_open_positions is not None:
+                            cur_open_count = __cal_total_open_position_count(record)
+                            if cur_open_count >= max_open_positions:
+                                skip_buy = True
+                                _log.warning(
+                                    f"[{trade_symbol}] Current opened position count exceeds limit, skip the BUY"
+                                    f" (limit = {max_open_positions}, current open = {cur_open_count}"
+                                )
 
-                        if trade_result.ok:
-                            __process_order_result(trade_result, report, notif, transactions_made)
-                            free_cash = __cal_new_cash_balance(free_cash, cash_currency, trade_result)
-                            _log.debug(f'[{trade_symbol}] {cash_currency} bal. after BUY: {free_cash}')
+                        if max_total_open_cost is not None:
+                            cur_total_open_cost = __cal_total_open_cost(record)
+                            if cur_total_open_cost >= max_total_open_cost:
+                                skip_buy = True
+                                _log.warning(
+                                    f"[{trade_symbol}] Current total open cost exceeds limit, skip the BUY"
+                                    f" (limit = {max_total_open_cost}, current open = {cur_total_open_cost}"
+                                )
+
+                        if not skip_buy:
+                            # 確認剩餘的現金是否大於最大投入限額
+                            # 若剩餘的現金小於限額，將剩餘現金投入
+                            max_fund = free_cash.min(max_fund_per_currency)
+
+                            trade_result = send_order.open_position_with_max_fund(
+                                api_client=crypto,
+                                base_asset=base_asset,
+                                trade_symbol=trade_symbol,
+                                cash_asset=cash_currency,
+                                max_fund=max_fund,
+                                asset_position=record.positions[base_asset],
+                                symbol_info=symbol_info,
+                                round_id=round_id,
+                            )
+
+                            if trade_result.ok:
+                                __process_order_result(trade_result, report, notif, transactions_made)
+                                free_cash = __cal_new_cash_balance(free_cash, cash_currency, trade_result)
+                                _log.debug(f'[{trade_symbol}] {cash_currency} bal. after BUY: {free_cash}')
                     elif trade_willr == Trade.SELL:
                         trade_result = send_order.close_all_position(
                             api_client=crypto,
