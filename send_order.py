@@ -22,35 +22,6 @@ class OrderResult:
         r.ok = False
         return r
 
-
-def can_send_buy_order_permitted_by_config(
-    record: file_based_asset_positions.AssetPositions,
-    trade_symbol: str,
-    max_open_positions: int,
-    max_total_open_cost: Decimal,
-) -> bool:
-    """依照 config 限制，目前狀況是否還允許送出買單至交易所"""
-    if max_open_positions is not None:
-        cur_open_count = record.cal_total_open_position_count()
-        if cur_open_count >= max_open_positions:
-            _log.warning(
-                f"[{trade_symbol}] Current opened position count exceeds limit, skip the BUY"
-                f" (limit = {max_open_positions}, current open = {cur_open_count}"
-            )
-            return False
-
-    if max_total_open_cost is not None:
-        cur_total_open_cost = record.cal_total_open_cost()
-        if cur_total_open_cost >= max_total_open_cost:
-            _log.warning(
-                f"[{trade_symbol}] Current total open cost exceeds limit, skip the BUY"
-                f" (limit = {max_total_open_cost}, current open = {cur_total_open_cost}"
-            )
-            return False
-
-    return True
-
-
 def open_position_with_max_fund(
     api_client: crypto.Crypto,
     base_asset: str,

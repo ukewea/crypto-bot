@@ -33,14 +33,14 @@ class Bot:
     def send_messages(self, texts):
         text = ''
         for t in texts:
-            text = text + t + "\n\n"
+            text = text + t + "\n"
 
         self.send_message(text.rstrip())
 
     def notify_transactions(self, transactions):
         text = ''
         for t in transactions:
-            text = text + t.to_str(withdate=False) + "\n\n"
+            text = text + t.to_str(withdate=False) + "\n"
 
         self.send_message(text.rstrip())
 

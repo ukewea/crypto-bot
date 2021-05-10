@@ -46,7 +46,7 @@ class Bot(bot_abc.Bot):
     def notify_transactions(self, transactions):
         text = ''
         for t in transactions:
-            text = text + t.to_str(withdate=False) + "\n\n"
+            text = text + t.to_str(withdate=False) + "\n"
 
         self.send_message(text.rstrip())
 

@@ -69,6 +69,11 @@ class Position:
         if transaction.activity == SIDE_BUY:
             self.open_quantity += transaction.quantity
             self.open_cost += transaction.quantity * transaction.price
+
+            # 如果手續費是從購買的貨幣中內扣，將這些手續費從 open_quantity 中去除
+            if transaction.commission_asset == transaction.symbol:
+                self.open_quantity -= transaction.commission
+
         elif transaction.activity == SIDE_SELL:
             current_avg_price = self.open_cost / self.open_quantity
             purchase_cost = (transaction.quantity * self.open_cost) / self.open_quantity
