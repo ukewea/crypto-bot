@@ -23,6 +23,34 @@ class OrderResult:
         return r
 
 
+def can_send_buy_order_permitted_by_config(
+    record: file_based_asset_positions.AssetPositions,
+    trade_symbol: str,
+    max_open_positions: int,
+    max_total_open_cost: Decimal,
+) -> bool:
+    """依照 config 限制，目前狀況是否還允許送出買單至交易所"""
+    if max_open_positions is not None:
+        cur_open_count = record.cal_total_open_position_count()
+        if cur_open_count >= max_open_positions:
+            _log.warning(
+                f"[{trade_symbol}] Current opened position count exceeds limit, skip the BUY"
+                f" (limit = {max_open_positions}, current open = {cur_open_count}"
+            )
+            return False
+
+    if max_total_open_cost is not None:
+        cur_total_open_cost = record.cal_total_open_cost()
+        if cur_total_open_cost >= max_total_open_cost:
+            _log.warning(
+                f"[{trade_symbol}] Current total open cost exceeds limit, skip the BUY"
+                f" (limit = {max_total_open_cost}, current open = {cur_total_open_cost}"
+            )
+            return False
+
+    return True
+
+
 def open_position_with_max_fund(
     api_client: crypto.Crypto,
     base_asset: str,
@@ -40,7 +68,7 @@ def open_position_with_max_fund(
     trade_symbol: 資產交易時的交易對
     cash_asset: 現金的資產名稱
     max_fund: 最大投入資金
-    asset_position: 資產目前倉位結構
+    asset_position: 某一幣種目前倉位的結構
     symbol_info: 交易對在交易所內的交易情況、交易限制等資訊
     """
 
@@ -165,6 +193,7 @@ def close_all_position(
     else:
         _log.error(f"[{trade_symbol}] Error while sending SELL order")
         return OrderResult.Failure(SIDE_SELL)
+
 
 def add_transactions_to_position(
     order_result: OrderResult,

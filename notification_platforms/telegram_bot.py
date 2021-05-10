@@ -19,11 +19,11 @@ class Bot(bot_abc.Bot):
             while True:
                 try:
                     item = rx_q.get()
-                    if item.task_type == queue_task.TaskType.NOTIFY_TX:
+                    if item.task_type == queue_task.TaskType.STOP_WORKER_THREAD:
+                        break
+                    elif item.task_type == queue_task.TaskType.NOTIFY_TX:
                         _log.debug("Sending transactions notification")
                         self.notify_transactions(item.payload)
-                    elif item.task_type == queue_task.TaskType.STOP_WORKER_THREAD:
-                        break
                     elif item.task_type == queue_task.TaskType.NOTIFY_CASH_BALANCE:
                         self.send_message(f"Cash balance: {item.payload}")
                     else:

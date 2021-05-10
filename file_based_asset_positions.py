@@ -9,17 +9,7 @@ _log = logging.getLogger(__name__)
 
 class AssetPositions:
     """基於檔案儲存的、帳號下的資產倉位"""
-    """
-    已實現總利潤
-    已實現報酬率(%)
-    未實現總利潤
-    未實現報酬率(%)
-    交易勝利次數
-    交易失敗次數
-    交易勝率
-    交易平均損益
-    交易平均時間
-    """
+
     BASE_DIR = "asset_positions"
 
     def __init__(self, watching_symbols, cash_asset):
@@ -45,6 +35,25 @@ class AssetPositions:
             sum += pos.get_transactions_count()
 
         return sum
+
+    def cal_total_open_position_count(self):
+        total_open_count = int(0)
+
+        for k, v in self.positions.items():
+            if v.open_quantity > 0:
+                total_open_count += 1
+
+        return total_open_count
+
+    def cal_total_open_cost(self):
+        total_open_cost = Decimal(0)
+
+        for k, v in self.positions.items():
+            if v.open_cost > 0:
+                total_open_cost += v.open_cost
+
+        return total_open_cost
+
 
     def __read_file(self, asset_symbol):
         record_path = AssetPositions.__get_record_path(asset_symbol)

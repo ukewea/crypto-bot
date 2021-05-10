@@ -40,6 +40,7 @@ def __process_order_result(
         _log.info(tx)
         tx_made.append(tx)
 
+
 def __cal_new_cash_balance(
     cash_now: Decimal,
     cash_currency: str,
@@ -72,24 +73,6 @@ def __cal_new_cash_balance(
     cash_now -= total_commission_cash
 
     return cash_now
-
-def __cal_total_open_position_count(record: file_based_asset_positions.AssetPositions):
-    total_open_count = int(0)
-
-    for k, v in record.positions.items():
-        if v.open_quantity > 0:
-            total_open_count += 1
-
-    return total_open_count
-
-def __cal_total_open_cost(record: file_based_asset_positions.AssetPositions):
-    total_open_cost = Decimal(0)
-
-    for k, v in record.positions.items():
-        if v.open_cost > 0:
-            total_open_cost += v.open_cost
-
-    return total_open_cost
 
 
 if __name__ == '__main__':
@@ -191,27 +174,14 @@ if __name__ == '__main__':
                 _log.debug(f"[{trade_symbol}] RSI = {trade_rsi}, WILLR = {trade_willr}")
                 try:
                     if trade_willr == Trade.BUY:
-                        skip_buy = False
+                        can_send_buy_order = send_order.can_send_buy_order_permitted_by_config(
+                            record=record,
+                            trade_symbol=trade_symbol,
+                            max_open_positions=max_open_positions,
+                            max_total_open_cost=max_total_open_cost,
+                        )
 
-                        if max_open_positions is not None:
-                            cur_open_count = __cal_total_open_position_count(record)
-                            if cur_open_count >= max_open_positions:
-                                skip_buy = True
-                                _log.warning(
-                                    f"[{trade_symbol}] Current opened position count exceeds limit, skip the BUY"
-                                    f" (limit = {max_open_positions}, current open = {cur_open_count}"
-                                )
-
-                        if max_total_open_cost is not None:
-                            cur_total_open_cost = __cal_total_open_cost(record)
-                            if cur_total_open_cost >= max_total_open_cost:
-                                skip_buy = True
-                                _log.warning(
-                                    f"[{trade_symbol}] Current total open cost exceeds limit, skip the BUY"
-                                    f" (limit = {max_total_open_cost}, current open = {cur_total_open_cost}"
-                                )
-
-                        if not skip_buy:
+                        if can_send_buy_order:
                             # 確認剩餘的現金是否大於最大投入限額
                             # 若剩餘的現金小於限額，將剩餘現金投入
                             max_fund = free_cash.min(max_fund_per_currency)
@@ -253,7 +223,7 @@ if __name__ == '__main__':
                     market_price_dict[symbol_info] = latest_quote
 
             except:
-                logging.exception(f"[{trade_symbol}] Catched an exception in trading symbol loop")
+                _log.exception(f"[{trade_symbol}] Catched an exception in trading symbol loop")
                 time.sleep(3)
             finally:
                 if os.path.exists("stoppp"):
@@ -267,7 +237,7 @@ if __name__ == '__main__':
             if notif is not None and len(transactions_made) > 0:
                 tx_q.put(QueueTask(TaskType.NOTIFY_TX, transactions_made))
         except:
-            logging.exception(f"Catched an exception while sending transactions notification")
+            _log.exception(f"Catched an exception while sending transactions notification")
 
         report.update_market_price(market_price_dict, record.positions)
 
@@ -283,6 +253,9 @@ if __name__ == '__main__':
             _log.debug(f"Fetching latest {cash_currency} balance from exchange")
             equities_balance = crypto.get_equities_balance(watching_symbols, cash_currency)
             free_cash = equities_balance[cash_currency].free
+
+            if len(transactions_made) > 0:
+                _log.info(f"Cash balance = {free_cash} after transactions are made")
 
             acc_transaction_count_before_notify_free_cash += len(transactions_made)
             if acc_transaction_count_before_notify_free_cash >= 20:
