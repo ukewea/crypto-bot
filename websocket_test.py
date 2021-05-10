@@ -15,7 +15,7 @@ async def main():
     client = await AsyncClient.create()
     bm = BinanceSocketManager(client)
     # start any sockets here, i.e a trade socket
-    streams = [f"{s.symbol.lower()}@ticker" for s in watching_symbols]
+    streams = [f"{s.symbol.lower()}@kline_15m" for s in watching_symbols]
     ms = bm.multiplex_socket(streams)
 
     price_cache = dict()
@@ -23,11 +23,12 @@ async def main():
     async with ms as tscm:
         while True:
             res = await tscm.recv()
-            trade_symbol = res['data']['s']
-            latest_price = res['data']['c']
-
-            print(f"{trade_symbol} price = {latest_price} {cash_currency}")
-            price_cache[trade_symbol] = latest_price
+            # trade_symbol = res['data']['s']
+            # latest_price = res['data']['c']
+            if res['data']['k']['x']:
+                print(res)
+            # print(f"{trade_symbol} price = {latest_price} {cash_currency}")
+            # price_cache[trade_symbol] = latest_price
 
     await client.close_connection()
 
