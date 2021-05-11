@@ -29,19 +29,19 @@ class WILLR_Analyzer(Analyzer):
         """
         highs, lows, closes = zip(*[(float(candle.high), float(candle.low), float(candle.close)) for candle in klines])
         willrs = talib.WILLR(numpy.array(highs), numpy.array(lows), numpy.array(closes), self.PERIOD)
-        upper, middle, lower = talib.BBANDS(numpy.array(closes), timeperiod=200, nbdevup=2, nbdevdn=2, matype=0)
+        # upper, middle, lower = talib.BBANDS(numpy.array(closes), timeperiod=200, nbdevup=2, nbdevdn=2, matype=0)
         last_willr = willrs[-1]
         if last_willr >= self.OVERSELL and position.open_quantity > 0:
-            buyPrice = 0
-            buyQuantity = 0
-            for transaction in position.transactions:
-                buyPrice += transaction.price
-                buyQuantity += transaction.quantity
+            # buyPrice = 0
+            # buyQuantity = 0
+            # for transaction in position.transactions:
+            #     buyPrice += transaction.price
+            #     buyQuantity += transaction.quantity
 
-            buyPrice = buyPrice/buyQuantity
-            if closes[-1] < middle[-1] and closes[-1] > buyPrice:
-                return Trade.PASS
-            else:
+            # buyPrice = buyPrice/buyQuantity
+            # if closes[-1] < middle[-1] and closes[-1] > buyPrice:
+            #     return Trade.PASS
+            # else:
                 return Trade.SELL
         elif last_willr <= self.UNDERBUY:
             return Trade.BUY
