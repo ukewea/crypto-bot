@@ -172,6 +172,15 @@ class TradeLoopRunner:
         self.__tx_q.put(QueueTask(TaskType.STOP_WORKER_THREAD, None))
         self.__tx_q.join()
 
+    def close_all_positions(self):
+        """平倉記錄的所有部位"""
+
+        # TODO fake a watching_symbols, which contains ALL currencies in asset_positions
+        # TODO run a loop, close all positions
+        # TODO that loop should stop until no exception is caught, but send warnings on API call error
+
+        pass
+
 
     def __analyze_a_currency(
         self,
@@ -194,7 +203,10 @@ class TradeLoopRunner:
 
         try:
             _log.debug(f'[{trade_symbol}] Downloading K lines')
-            klines = self.__crypto.get_klines(trade_symbol, 250)
+            klines = self.__crypto.get_klines(trade_symbol, 20, Client.KLINE_INTERVAL_1DAY)
+            if klines is None:
+                return
+
             latest_quote = klines[-1].close
 
             # trade_rsi = self.__rsi_analyzer.Analyze(klines)

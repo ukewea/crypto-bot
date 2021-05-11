@@ -21,6 +21,9 @@ async def main():
 
     for s in watching_symbols:
         klines_api = crypto.get_klines(s.symbol, 500)
+        if klines_api is None:
+            continue
+
         dq = collections.deque(maxlen=500)
         closed_klines[s.symbol] = dq
 

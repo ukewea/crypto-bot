@@ -104,11 +104,11 @@ class Crypto:
 
         klines = self.client.get_klines(
             symbol=symbol,
-            interval=Client.KLINE_INTERVAL_15MINUTE,
+            interval=interval,
             limit=klines_limit)
         if len(klines) < klines_limit:
-            raise Exception(
-                f"No enough data for {symbol} (only {len(klines)})")
+            _log.debug(f"[{symbol}] No enough data for {symbol} (only {len(klines)})")
+            return None
 
         return [Kline(data) for data in klines]
 
