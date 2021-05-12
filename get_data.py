@@ -7,6 +7,8 @@ os.makedirs('logs-debug', mode=0o755, exist_ok=True)
 
 logging.config.fileConfig(os.path.join('user-config', 'logging.ini'))
 
+from os import listdir
+from os.path import isfile, join
 import time
 from time import perf_counter
 import file_based_asset_positions
@@ -124,13 +126,7 @@ class TradeLoopRunner:
                     os.rename("stoppp", "_stoppp")
                     break
 
-            try:
-                # 跑完一輪後再一次送出全部的交易通知
-                if self.__notif is not None and len(transactions_made) > 0:
-                    self.__tx_q.put(QueueTask(TaskType.NOTIFY_TX, transactions_made))
-            except:
-                _log.exception(f"Catched an exception while sending transactions notification")
-
+            self.__try_notify_transactions(transactions_made)
             report.update_market_price(market_price_dict, self.__record.positions)
 
             if not keep_loop_running:
@@ -174,12 +170,53 @@ class TradeLoopRunner:
 
     def close_all_positions(self):
         """平倉記錄的所有部位"""
+        _log.info("----- Closing all positions -----")
 
-        # TODO fake a watching_symbols, which contains ALL currencies in asset_positions
-        # TODO run a loop, close all positions
-        # TODO that loop should stop until no exception is caught, but send warnings on API call error
+        self.__watching_symbols = self.__crypto.get_tradable_symbols(self.__cash_currency, self.__exclude_currencies)
+        _log.debug(f"Watching trading symbols: {self.__watching_symbols}")
 
-        pass
+        equities_balance = self.__crypto.get_equities_balance(self.__watching_symbols, self.__cash_currency)
+        self.__record = file_based_asset_positions.AssetPositions(self.__watching_symbols, self.__cash_currency)
+
+        # Google Sheet 報表 client
+        report = CryptoReport(config=self.__config)
+
+        self.__free_cash = equities_balance[self.__cash_currency].free
+        market_price_dict = {}
+        transactions_made = []
+
+        # 給這一輪的 transaction 一個 group ID
+        round_id = str(time.time_ns())
+
+        try:
+            for symbol_info in self.__watching_symbols:
+                trade_symbol = symbol_info.symbol
+                base_asset = symbol_info.base_asset
+
+                _log.debug(f"[{trade_symbol}] Selling all {base_asset} for {self.__cash_currency}")
+
+                self.__do_action_by_analysis_result(
+                    symbol_info=symbol_info,
+                    equities_balance=equities_balance,
+                    report=report,
+                    round_id=round_id,
+                    market_price_dict=market_price_dict,
+                    transactions_made=transactions_made,
+                    buy_sell_action=Trade.SELL,
+                )
+
+                if os.path.exists("stoppp"):
+                    _log.warning("Stop file detected, stop trading symbol loop")
+                    keep_loop_running = False
+                    os.rename("stoppp", "_stoppp")
+                    break
+
+                time.sleep(0.1)
+        except:
+            _log.exception(f"[{trade_symbol}] Catched an exception while selling all {base_asset} for {self.__cash_currency}")
+
+        self.__try_notify_transactions(transactions_made)
+        _log.info("----- Done closing all positions -----")
 
 
     def __analyze_a_currency(
@@ -217,49 +254,72 @@ class TradeLoopRunner:
             # _log.debug(f"[{trade_symbol}] RSI = {trade_rsi}, WILLR = {trade_willr}")
             _log.debug(f"[{trade_symbol}] WILLR = {trade_willr}")
 
-            try:
-                if trade_willr == Trade.BUY:
-                    can_send_buy_order = self.__can_send_buy_order_permitted_by_config(
-                        trade_symbol=trade_symbol,
-                    )
+            self.__do_action_by_analysis_result(
+                symbol_info=symbol_info,
+                equities_balance=equities_balance,
+                report=report,
+                round_id=round_id,
+                market_price_dict=market_price_dict,
+                transactions_made=transactions_made,
+                buy_sell_action=trade_willr,
+            )
 
-                    if can_send_buy_order:
-                        # 確認剩餘的現金是否大於最大投入限額
-                        # 若剩餘的現金小於限額，將剩餘現金投入
-                        max_fund = self.__free_cash.min(self.__max_fund_per_currency)
-
-                        trade_result = send_order.open_position_with_max_fund(
-                            api_client=self.__crypto,
-                            base_asset=base_asset,
-                            trade_symbol=trade_symbol,
-                            cash_asset=self.__cash_currency,
-                            max_fund=max_fund,
-                            asset_position=self.__record.positions[base_asset],
-                            symbol_info=symbol_info,
-                            round_id=round_id,
-                        )
-
-                        self.__process_order_result(trade_result, trade_symbol, report, transactions_made)
-                elif trade_willr == Trade.SELL:
-                    trade_result = send_order.close_all_position(
-                        api_client=self.__crypto,
-                        base_asset=base_asset,
-                        trade_symbol=trade_symbol,
-                        cash_asset=self.__cash_currency,
-                        asset_position=self.__record.positions[base_asset],
-                        symbol_info=symbol_info,
-                        round_id=round_id,
-                    )
-
-                    self.__process_order_result(trade_result, trade_symbol, report, transactions_made)
-                else:
-                    return
-            finally:
-                time.sleep(0.1)
-                market_price_dict[symbol_info] = latest_quote
+            time.sleep(0.1)
+            market_price_dict[symbol_info] = latest_quote
         except:
             _log.exception(f"[{trade_symbol}] Catched an exception in trading symbol loop")
             time.sleep(3)
+
+
+    def __do_action_by_analysis_result(
+        self,
+        symbol_info: WatchingSymbol,
+        equities_balance,
+        report: CryptoReport,
+        round_id: str,
+        market_price_dict,
+        transactions_made,
+        buy_sell_action,
+    ):
+        trade_symbol = symbol_info.symbol
+        base_asset = symbol_info.base_asset
+
+        if buy_sell_action == Trade.BUY:
+            can_send_buy_order = self.__can_send_buy_order_permitted_by_config(
+                trade_symbol=trade_symbol,
+            )
+
+            if can_send_buy_order:
+                # 確認剩餘的現金是否大於最大投入限額
+                # 若剩餘的現金小於限額，將剩餘現金投入
+                max_fund = self.__free_cash.min(self.__max_fund_per_currency)
+
+                trade_result = send_order.open_position_with_max_fund(
+                    api_client=self.__crypto,
+                    base_asset=base_asset,
+                    trade_symbol=trade_symbol,
+                    cash_asset=self.__cash_currency,
+                    max_fund=max_fund,
+                    asset_position=self.__record.positions[base_asset],
+                    symbol_info=symbol_info,
+                    round_id=round_id,
+                )
+
+                self.__process_order_result(trade_result, trade_symbol, report, transactions_made)
+        elif buy_sell_action == Trade.SELL:
+            trade_result = send_order.close_all_position(
+                api_client=self.__crypto,
+                base_asset=base_asset,
+                trade_symbol=trade_symbol,
+                cash_asset=self.__cash_currency,
+                asset_position=self.__record.positions[base_asset],
+                symbol_info=symbol_info,
+                round_id=round_id,
+            )
+
+            self.__process_order_result(trade_result, trade_symbol, report, transactions_made)
+        else:
+            return
 
 
     def __process_order_result(
@@ -337,6 +397,14 @@ class TradeLoopRunner:
 
         return True
 
+    def __try_notify_transactions(self, transactions_made):
+        try:
+            # 跑完一輪後再一次送出全部的交易通知
+            if self.__notif is not None and len(transactions_made) > 0:
+                self.__tx_q.put(QueueTask(TaskType.NOTIFY_TX, transactions_made))
+        except:
+            _log.exception(f"Catched an exception while sending transactions notification")
+
 
 if __name__ == '__main__':
     _log.info("App starts")
@@ -346,5 +414,6 @@ if __name__ == '__main__':
 
     trade_loop_runner = TradeLoopRunner(config)
     trade_loop_runner.start_loop()
+    # trade_loop_runner.close_all_positions()
 
     _log.debug("App exited")

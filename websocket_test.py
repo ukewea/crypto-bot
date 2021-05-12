@@ -6,19 +6,7 @@ from crypto import *
 import time
 import traceback
 
-
-async def main():
-    config = Config()
-    crypto = Crypto(config)
-    cash_currency = config.position_manage['cash_currency']
-    exclude_currencies = config.position_manage['exclude_currencies']
-
-    watching_symbols = crypto.get_tradable_symbols(cash_currency, exclude_currencies)
-    watching_symbols = watching_symbols[:3]
-    # print(watching_symbols)
-
-    closed_klines = dict()
-
+def test_api():
     for s in watching_symbols:
         klines_api = crypto.get_klines(s.symbol, 500)
         if klines_api is None:
@@ -48,17 +36,28 @@ async def main():
         print("Oops, missed a K line")
 
 
+async def main_1m():
+    config = Config()
+    crypto = Crypto(config)
+    cash_currency = config.position_manage['cash_currency']
+    exclude_currencies = config.position_manage['exclude_currencies']
+
+    watching_symbols = crypto.get_tradable_symbols(cash_currency, exclude_currencies)
+    print(watching_symbols)
+
+    closed_klines = dict()
+
     client = await AsyncClient.create()
     bm = BinanceSocketManager(client)
     # start any sockets here, i.e a trade socket
     streams = [f"{s.symbol.lower()}@kline_1m" for s in watching_symbols]
-    ms = bm.multiplex_socket(streams)
+    ms_1m = bm.multiplex_socket(streams)
 
     price_cache = dict()
     last_time_get_closed_klines = dict()
 
     # then start receiving messages
-    async with ms as tscm:
+    async with ms_1m as tscm:
         while True:
             try:
                 res = await tscm.recv()
@@ -82,7 +81,7 @@ async def main():
 
                     last_time_get_closed_klines[trade_symbol] = int(kline_close_time)
 
-                print(f"{trade_symbol} {kline_start_time} ~ price = {close_price} {cash_currency}")
+                # print(f"{trade_symbol} {kline_start_time} ~ price = {close_price} {cash_currency}")
                 price_cache[trade_symbol] = close_price
             except Exception as err:
                 print("ERRRRRRRRRRRRR processing data")
@@ -95,4 +94,5 @@ async def main():
 if __name__ == "__main__":
 
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(main())
+    cors = asyncio.wait([main_1m()])
+    loop.run_until_complete(cors)

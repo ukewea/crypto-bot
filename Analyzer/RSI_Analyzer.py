@@ -38,7 +38,7 @@ class RSI_Analyzer(Analyzer):
         closes = [float(candle.close) for candle in klines]
         np_closes = numpy.array(closes)
         rsi = talib.RSI(np_closes, self.PERIOD)
-        last_rsi = rsi[-2]
+        last_rsi = rsi[-1]
         if last_rsi >= self.OVERSELL:
             return Trade.SELL
         elif last_rsi <= self.UNDERBUY:
