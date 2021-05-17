@@ -1,9 +1,10 @@
-import telegram
 import logging.config
-import threading
 import queue
-from . import bot_abc
-from . import queue_task
+import threading
+
+import telegram
+
+from . import bot_abc, queue_task
 
 _log = logging.getLogger(__name__)
 

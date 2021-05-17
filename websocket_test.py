@@ -1,12 +1,15 @@
 import asyncio
 import collections
-from binance import AsyncClient, BinanceSocketManager
-from config import *
-from crypto import *
 import time
 import traceback
 
-def test_api():
+from binance import AsyncClient, BinanceSocketManager
+
+from config import *
+from crypto import *
+
+
+def test_api(crypto, watching_symbols, closed_klines):
     for s in watching_symbols:
         klines_api = crypto.get_klines(s.symbol, 500)
         if klines_api is None:
@@ -18,11 +21,13 @@ def test_api():
         last_close_api = None
         for k in klines_api:
             if k.close_time - k.open_time != (15 * 60 * 1000 - 1):
-                print(f"Bad K line interval: {k.close_time} - {k.open_time} = {k.close_time - k.open_time}")
+                print(
+                    f"Bad K line interval: {k.close_time} - {k.open_time} = {k.close_time - k.open_time}")
 
             if last_close_api is not None:
                 if k.close_time - last_close_api != (15 * 60 * 1000):
-                    print(f"Bad inter K line interval: {k.close_time} - {last_close_api} = {k.close_time - last_close_api}")
+                    print(
+                        f"Bad inter K line interval: {k.close_time} - {last_close_api} = {k.close_time - last_close_api}")
             last_close_api = k.close_time
 
             # put k into closed_klines[s.symbol]
@@ -42,10 +47,13 @@ async def main_1m():
     cash_currency = config.position_manage['cash_currency']
     exclude_currencies = config.position_manage['exclude_currencies']
 
-    watching_symbols = crypto.get_tradable_symbols(cash_currency, exclude_currencies)
+    watching_symbols = crypto.get_tradable_symbols(
+        cash_currency, exclude_currencies)
     print(watching_symbols)
 
     closed_klines = dict()
+
+    # test_api(crypto, watching_symbols, closed_klines)
 
     client = await AsyncClient.create()
     bm = BinanceSocketManager(client)
@@ -77,9 +85,11 @@ async def main_1m():
                     if trade_symbol in last_time_get_closed_klines:
                         # k = Kline([kline_start_time, kline_close_time])
                         last_time_close = last_time_get_closed_klines[trade_symbol]
-                        print(f"Close time diff = {kline_close_time - last_time_close}")
+                        print(
+                            f"Close time diff = {kline_close_time - last_time_close}")
 
-                    last_time_get_closed_klines[trade_symbol] = int(kline_close_time)
+                    last_time_get_closed_klines[trade_symbol] = int(
+                        kline_close_time)
 
                 # print(f"{trade_symbol} {kline_start_time} ~ price = {close_price} {cash_currency}")
                 price_cache[trade_symbol] = close_price
@@ -87,7 +97,6 @@ async def main_1m():
                 print("ERRRRRRRRRRRRR processing data")
                 traceback.print_tb(err.__traceback__)
                 raise
-
 
     await client.close_connection()
 

@@ -1,6 +1,7 @@
 import abc
 from typing import List
 
+
 class Bot(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def send_messages(self, texts: List[str]):

@@ -1,26 +1,33 @@
-import file_based_asset_positions
-import position
-import crypto
 import copy
-from binance.enums import *
-from decimal import Decimal
 import logging.config
+from decimal import Decimal
+from enum import Enum
+from binance.enums import *
 
+import crypto
+import position
 
 _log = logging.getLogger(__name__)
 
+class OrderStatus(Enum):
+    OK = 0
+    API_ERROR = 1
+    ALREADY_OPEN = 2
+    NO_POSITION = 3
+    INSUFFICIENT_FUND = 4
+
 
 class OrderResult:
-    def __init__(self, side: str):
-        self.ok = False
+    def __init__(
+        self,
+        side: str,
+        status: OrderStatus
+    ):
         self.side = side
+        self.status = status
         self.transactions = list()
         self.raw_response = None
 
-    def Failure(side: str):
-        r = OrderResult(side)
-        r.ok = False
-        return r
 
 def open_position_with_max_fund(
     api_client: crypto.Crypto,
@@ -47,8 +54,9 @@ def open_position_with_max_fund(
 
     open_quantity = asset_position.open_quantity
     if open_quantity > 0:
-        _log.debug(f"[{trade_symbol}] Already holds {base_asset} (qty {open_quantity.normalize():f}), skip the buy")
-        return OrderResult.Failure(SIDE_BUY)
+        _log.debug(
+            f"[{trade_symbol}] Already holds {base_asset} (qty {open_quantity.normalize():f}), skip the buy")
+        return OrderResult(SIDE_BUY, OrderStatus.ALREADY_OPEN)
 
     symbol_filters = symbol_info.info['filters']
     filters_dict = dict()
@@ -60,9 +68,9 @@ def open_position_with_max_fund(
     # print(f"MIN_NOTIONAL dict: {min_notional_dict}")
     min_notional = Decimal(min_notional_dict['minNotional'])
     if (max_fund < min_notional):
-        _log.warning(f"[{trade_symbol}] No cash to send a BUY order"
-        f" (minNotional = {min_notional.normalize():f}, our budget = {max_fund.normalize():f}")
-        return OrderResult.Failure(SIDE_BUY)
+        _log.debug(f"[{trade_symbol}] No cash to send a BUY order"
+                   f" (minNotional = {min_notional.normalize():f}, our budget = {max_fund.normalize():f}")
+        return OrderResult(SIDE_BUY, OrderStatus.INSUFFICIENT_FUND)
 
     # 建立 Decimal 如果能傳字串就盡量傳字串，傳數字進來會有精度問題
     latest_price_api_call = api_client.get_latest_price(trade_symbol)
@@ -78,14 +86,16 @@ def open_position_with_max_fund(
 
     if max_buyable_quantity < min_qty:
         _log.warning(f"[{trade_symbol}] Cannot meet minimum BUY qty requirement"
-            f" (min qty = {min_qty.normalize():f}, our max qty = {max_buyable_quantity.normalize():f}")
-        return OrderResult.Failure(SIDE_BUY)
+                     f" (min qty = {min_qty.normalize():f}, our max qty = {max_buyable_quantity.normalize():f}")
+        return OrderResult(SIDE_BUY, OrderStatus.INSUFFICIENT_FUND)
 
     # 移除 stepSize 無法整除的部份，賣出時才能全部平倉
-    rounded_quantity = max_buyable_quantity - (max_buyable_quantity % step_size)
+    rounded_quantity = (max_buyable_quantity -
+                        (max_buyable_quantity % step_size))
 
     if rounded_quantity > max_qty:
-        _log.debug(f"[{trade_symbol}] Desired BUY qty '{rounded_quantity.normalize():f}' exceeds limit, lower to '{max_qty.normalize():f}'")
+        _log.debug(
+            f"[{trade_symbol}] Desired BUY qty '{rounded_quantity.normalize():f}' exceeds limit, lower to '{max_qty.normalize():f}'")
         rounded_quantity = max_qty
 
     rounded_qty_str = f"{rounded_quantity.normalize():f}"
@@ -93,7 +103,7 @@ def open_position_with_max_fund(
         f"[{trade_symbol}] Sending BUY order to exchange"
         f", BUY qty = '{rounded_qty_str}'"
         f", estimated cost = (qty * latest_quote) = '{(rounded_quantity * latest_price).normalize():f}'"
-        f" (commissions not included)"
+        f" (commission not included)"
     )
     order_ok, order = api_client.order_qty(
         side=SIDE_BUY,
@@ -103,18 +113,20 @@ def open_position_with_max_fund(
 
     if order_ok:
         if order['status'] != "FILLED":
-            _log.warn(f"[{trade_symbol}] BUY order status is not FILLED, here's the response:")
+            _log.warn(
+                f"[{trade_symbol}] BUY order status is not FILLED, here's the response:")
             _log.warn(str(order))
 
-        ret = OrderResult(SIDE_BUY)
-        ret.ok = True
+        ret = OrderResult(SIDE_BUY, OrderStatus.OK)
         ret.raw_response = order
-        _log.debug(f"[{trade_symbol}] BUY order sent, adding transaction to database")
-        add_transactions_to_position(ret, api_client, base_asset, trade_symbol, cash_asset, asset_position, round_id, order)
+        _log.debug(
+            f"[{trade_symbol}] BUY order sent, adding transaction to database")
+        add_transactions_to_position(
+            ret, api_client, base_asset, trade_symbol, cash_asset, asset_position, round_id, order)
         return ret
     else:
         _log.error(f"[{trade_symbol}] Error while sending BUY order")
-        return OrderResult.Failure(SIDE_BUY)
+        return OrderResult(SIDE_BUY, OrderStatus.API_ERROR)
 
 
 def close_all_position(
@@ -133,11 +145,12 @@ def close_all_position(
     open_quantity = asset_position.open_quantity
     if open_quantity <= 0:
         _log.debug(f"[{trade_symbol}] No {base_asset} to sell")
-        return OrderResult.Failure(SIDE_SELL)
+        return OrderResult(SIDE_SELL, OrderStatus.NO_POSITION)
 
     # 只平倉有紀錄的資產，避免平倉到不是自動開倉的部位
     open_qty_str = f"{open_quantity.normalize():f}"
-    _log.debug(f"[{trade_symbol}] Sending SELL order to exchange, qty = '{open_qty_str}'")
+    _log.debug(
+        f"[{trade_symbol}] Sending SELL order to exchange, qty = '{open_qty_str}'")
     order_ok, order = api_client.order_qty(
         side=SIDE_SELL,
         quantity=open_qty_str,
@@ -152,18 +165,20 @@ def close_all_position(
         # {'symbol': 'XRPUSDT', 'orderId': 1292, 'orderListId': -1, 'clientOrderId': 'Fc1OgHu9AUrytFTQUJOT16', 'transactTime': 1620188400305, 'price': '0.00000000', 'origQty': '16.30000000', 'executedQty': '0.00000000', 'cummulativeQuoteQty': '0.00000000', 'status': 'EXPIRED', 'timeInForce': 'GTC', 'type': 'MARKET', 'side': 'SELL', 'fills': []}
 
         if order['status'] != "FILLED":
-            _log.warn(f"[{trade_symbol}] SELL order status is not FILLED, here's the response:")
+            _log.warn(
+                f"[{trade_symbol}] SELL order status is not FILLED, here's the response:")
             _log.warn(str(order))
 
-        ret = OrderResult(SIDE_SELL)
-        ret.ok = True
+        ret = OrderResult(SIDE_SELL, OrderStatus.OK)
         ret.raw_response = order
-        _log.debug(f"[{trade_symbol}] SELL order sent, adding transaction to database")
-        add_transactions_to_position(ret, api_client, base_asset, trade_symbol, cash_asset, asset_position, round_id, order)
+        _log.debug(
+            f"[{trade_symbol}] SELL order sent, adding transaction to database")
+        add_transactions_to_position(
+            ret, api_client, base_asset, trade_symbol, cash_asset, asset_position, round_id, order)
         return ret
     else:
         _log.error(f"[{trade_symbol}] Error while sending SELL order")
-        return OrderResult.Failure(SIDE_SELL)
+        return OrderResult(SIDE_SELL, OrderStatus.API_ERROR)
 
 
 def add_transactions_to_position(
@@ -192,11 +207,14 @@ def add_transactions_to_position(
 
         # 若手續費不是以 USDT 計價，轉換為 USDT
         if fill_commission_asset != cash_asset:
-            commision_to_cash_price = commision_to_cash_prices.get(fill_commission_asset, None)
+            commision_to_cash_price = commision_to_cash_prices.get(
+                fill_commission_asset, None)
             if commision_to_cash_price is None:
                 trade_symbol_commission = f"{fill_commission_asset}{cash_asset}"
-                latest_commision_to_cash_price_api_call = api_client.get_latest_price(trade_symbol_commission)
-                commision_to_cash_price = Decimal(latest_commision_to_cash_price_api_call['price'])
+                latest_commision_to_cash_price_api_call = api_client.get_latest_price(
+                    trade_symbol_commission)
+                commision_to_cash_price = Decimal(
+                    latest_commision_to_cash_price_api_call['price'])
                 commision_to_cash_prices[fill_commission_asset] = commision_to_cash_price
 
             fill_commission_as_cash = fill_commission * commision_to_cash_price

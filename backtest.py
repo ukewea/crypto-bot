@@ -1,7 +1,7 @@
 if __name__ == '__main__':
     import backtrader as bt
     import datetime
-    from Analyzer import *
+    from analyzer import *
     from crypto import *
     from config import *
 
@@ -17,7 +17,8 @@ if __name__ == '__main__':
     BASE_DIR = 'history_klines'
 
     watching_symbols = crypto.get_tradable_symbols(cash_asset, exclude_assets)
-    equities_balance = crypto.get_equities_balance(watching_symbols, cash_asset)
+    equities_balance = crypto.get_equities_balance(
+        watching_symbols, cash_asset)
     willr_analyzer = WILLR_Analyzer(config)
     rsi_analyzer = RSI_Analyzer(config)
 
@@ -34,6 +35,8 @@ if __name__ == '__main__':
         #fromdate = datetime.datetime.strptime('2020-07-01', '%Y-%m-%d')
         #todate = datetime.datetime.strptime('2020-07-12', '%Y-%m-%d')
         csv_path = os.path.join(BASE_DIR, f'{symbol}.csv')
-        data = bt.feeds.GenericCSVData(dataname=csv_path, dtformat=2, compression=15, timeframe=bt.TimeFrame.Minutes)#, fromdate=fromdate, todate=todate)
-        willr_analyzer.Backtest(data)
-        #rsi_analyzer.Backtest(data)
+        # , fromdate=fromdate, todate=todate)
+        data = bt.feeds.GenericCSVData(
+            dataname=csv_path, dtformat=2, compression=15, timeframe=bt.TimeFrame.Minutes)
+        willr_analyzer.backtest(data)
+        # rsi_analyzer.backtest(data)

@@ -12,11 +12,12 @@ class Trade(Enum):
     BUY = 1
     SELL = 2
 
+
 class Analyzer(metaclass=abc.ABCMeta):
     # 建構式
     def __init__(self):
         pass
 
     @abc.abstractmethod
-    def Analyze(self, klines):
+    def analyze(self, klines, position):
         return NotImplemented

@@ -1,10 +1,12 @@
 import logging.config
-from . import bot_abc
+import threading
+
+from . import bot_abc, queue_task
 
 _log = logging.getLogger(__name__)
 
 
-class Bot:
+class Bot(bot_abc.Bot):
     def __init__(self, config):
         _log.debug("init a Discord bot")
 

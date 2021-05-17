@@ -1,9 +1,8 @@
-import json
-from binance.enums import *
-from decimal import Decimal
-from datetime import datetime
 import logging.config
+from datetime import datetime
+from decimal import Decimal
 
+from binance.enums import *
 
 _log = logging.getLogger(__name__)
 
@@ -32,7 +31,8 @@ class Position:
         self.open_quantity = Decimal(dict['open_quantity'])
         self.open_cost = Decimal(dict['open_cost'])
         self.realized_gain = Decimal(dict['realized_gain'])
-        self.total_commission_as_usdt = Decimal(dict['total_commission_as_usdt'])
+        self.total_commission_as_usdt = Decimal(
+            dict['total_commission_as_usdt'])
 
         for transact in dict['transactions']:
             # print(transact)
@@ -76,7 +76,8 @@ class Position:
 
         elif transaction.activity == SIDE_SELL:
             current_avg_price = self.open_cost / self.open_quantity
-            purchase_cost = (transaction.quantity * self.open_cost) / self.open_quantity
+            purchase_cost = (transaction.quantity *
+                             self.open_cost) / self.open_quantity
             realized_gain = (transaction.price -
                              current_avg_price) * transaction.quantity
 

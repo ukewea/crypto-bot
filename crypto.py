@@ -1,9 +1,9 @@
-from binance.client import Client
-from binance.enums import *
+import logging.config
 from decimal import Decimal
 from typing import Dict, List
-import logging.config
 
+from binance.client import Client
+from binance.enums import *
 
 _log = logging.getLogger(__name__)
 
@@ -37,6 +37,7 @@ class AssetBalance:
             f"locked: '{self.locked.normalize():f}'}}"
         )
 
+
 class WatchingSymbol:
     """監視中的交易對"""
 
@@ -56,6 +57,7 @@ class WatchingSymbol:
 
     def __repr__(self):
         return f"{{symbol: '{self.symbol}', base_asset: '{self.base_asset}'}}"
+
 
 class Crypto:
     def __init__(self, config):
@@ -107,7 +109,8 @@ class Crypto:
             interval=interval,
             limit=klines_limit)
         if len(klines) < klines_limit:
-            _log.debug(f"[{symbol}] No enough data for {symbol} (only {len(klines)})")
+            _log.debug(
+                f"[{symbol}] No enough data for {symbol} (only {len(klines)})")
             return None
 
         return [Kline(data) for data in klines]
@@ -169,7 +172,6 @@ class Crypto:
         except Exception as e:
             _log.error(f"[order_qty] an exception occurred - {e}")
             return (False, None)
-
 
     def order_quote_qty(self, side, quoteOrderQty, symbol, order_type=ORDER_TYPE_MARKET):
         """送出指定成交額的訂單"""

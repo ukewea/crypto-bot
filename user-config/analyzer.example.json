@@ -1,4 +1,5 @@
 {
+    "type": "WILLR",
     "RSI": {
         "period": 14,
         "underbuy": 30,
