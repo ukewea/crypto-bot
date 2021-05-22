@@ -12,7 +12,7 @@ import send_order
 import file_based_asset_positions
 import position
 from send_order import OrderStatus, OrderResult
-from analyzer import *
+from Analyzer import *
 from config import *
 from crypto import *
 from crypto_report import CryptoReport

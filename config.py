@@ -55,7 +55,7 @@ class Config:
         if 'type' not in self.analyzer or len(self.analyzer['type']) < 1:
             raise RuntimeError('type is not specified in analyzer.json config file')
 
-        module_path = f"analyzer.{self.analyzer['type']}_Analyzer"
+        module_path = f"Analyzer.{self.analyzer['type']}_Analyzer"
         class_name = f"{self.analyzer['type']}_Analyzer"
 
         try:
