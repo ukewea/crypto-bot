@@ -3,6 +3,7 @@ import __init__
 import logging.config
 import queue
 import time
+import signal
 from decimal import Decimal
 from typing import List
 
@@ -12,13 +13,23 @@ import send_order
 import file_based_asset_positions
 import position
 from send_order import OrderStatus, OrderResult
-from Analyzer import *
+from analyzer import *
 from config import *
 from crypto import *
 from crypto_report import CryptoReport
 from notification_platforms.queue_task import *
 
+class GracefulKiller:
+    kill_now = False
+    def __init__(self):
+        signal.signal(signal.SIGINT, self.exit_gracefully)
+        signal.signal(signal.SIGTERM, self.exit_gracefully)
+
+    def exit_gracefully(self, *args):
+        self.kill_now = True
+
 _log = logging.getLogger(__name__)
+_killer = GracefulKiller()
 
 
 class TradeLoopRunner:
@@ -97,7 +108,7 @@ class TradeLoopRunner:
         self.__free_cash = equities_balance[self.__cash_currency].free
         keep_loop_running = True
 
-        while keep_loop_running:
+        while keep_loop_running and not _killer.kill_now:
             tic = time.perf_counter()
 
             # 給這一輪的 transaction 一個 group ID
@@ -128,6 +139,11 @@ class TradeLoopRunner:
                     keep_loop_running = False
                     os.rename("stoppp", "_stoppp")
                     break
+                elif _killer.kill_now:
+                    _log.warning(
+                        "SIGINT or SIGTERM detected, stop trading symbol loop")
+                    keep_loop_running = False
+                    break
 
             self.__try_notify_transactions(transactions_made)
             report.update_market_price(
@@ -137,7 +153,7 @@ class TradeLoopRunner:
                 _log.warning(f"Cannot send BUY order for the following due to insufficient funds: {insufficient_fund_trade_symbols}")
 
             if not keep_loop_running:
-                _log.warning("Stop file detected, stop the outer loop")
+                _log.warning("Stop the outer loop")
                 toc = time.perf_counter()
                 time_elapsed = toc - tic
                 _log.debug(
@@ -228,6 +244,11 @@ class TradeLoopRunner:
                         "Stop file detected, stop trading symbol loop")
                     keep_loop_running = False
                     os.rename("stoppp", "_stoppp")
+                    break
+                elif _killer.kill_now:
+                    _log.warning(
+                        "SIGINT or SIGTERM detected, stop trading symbol loop")
+                    keep_loop_running = False
                     break
 
                 time.sleep(0.1)
