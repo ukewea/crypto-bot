@@ -6,6 +6,7 @@ import time
 import signal
 from decimal import Decimal
 from typing import List
+from threading import Event
 
 from binance.enums import *
 
@@ -19,17 +20,21 @@ from crypto import *
 from crypto_report import CryptoReport
 from notification_platforms.queue_task import *
 
+
 class GracefulKiller:
     kill_now = False
-    def __init__(self):
+    def __init__(self, sleep_event):
+        self.__sleep_event = sleep_event
         signal.signal(signal.SIGINT, self.exit_gracefully)
         signal.signal(signal.SIGTERM, self.exit_gracefully)
 
     def exit_gracefully(self, *args):
         self.kill_now = True
+        self.__sleep_event.set()
 
+sleep_event = Event()
 _log = logging.getLogger(__name__)
-_killer = GracefulKiller()
+_killer = GracefulKiller(sleep_event)
 
 
 class TradeLoopRunner:
@@ -120,6 +125,7 @@ class TradeLoopRunner:
             transactions_made = []
             insufficient_fund_trade_symbols = []
 
+            # 分析全部交易對、進行交易
             for symbol_info in self.__watching_symbols:
                 trade_result = self.__analyze_a_currency(
                     symbol_info=symbol_info,
@@ -145,15 +151,22 @@ class TradeLoopRunner:
                     keep_loop_running = False
                     break
 
+            # 通知進行的交易
             self.__try_notify_transactions(transactions_made)
-            report.update_market_price(
-                market_price_dict, self.__record.positions)
+
+            # 更新 Google Sheet
+            try:
+                report.update_market_price(
+                    market_price_dict, self.__record.positions)
+            except:
+                _log.exception(
+                    f"Catched an exception while updating report on Google Sheet")
 
             if len(insufficient_fund_trade_symbols) > 0:
                 _log.warning(f"Cannot send BUY order for the following due to insufficient funds: {insufficient_fund_trade_symbols}")
 
-            if not keep_loop_running:
-                _log.warning("Stop the outer loop")
+            if not keep_loop_running or _killer.kill_now:
+                _log.warning("Stop the outer loop after updating report on Google Sheet")
                 toc = time.perf_counter()
                 time_elapsed = toc - tic
                 _log.debug(
@@ -181,7 +194,7 @@ class TradeLoopRunner:
                             TaskType.NOTIFY_CASH_BALANCE, f"{self.__free_cash.normalize():f} {self.__cash_currency}"))
                     acc_transaction_count_before_notify_free_cash = 0
 
-                time.sleep(1)
+                sleep_event.wait(1)
             except:
                 _log.exception(
                     f"Catched an exception while fetching latest {self.__cash_currency} balance from exchange")
@@ -193,7 +206,15 @@ class TradeLoopRunner:
             cool_down_time = 60 - time_elapsed
             if cool_down_time > 0:
                 _log.debug(f"Sleep {cool_down_time} seconds before next round")
-                time.sleep(cool_down_time)
+                sleep_event.wait(cool_down_time)
+
+            if not keep_loop_running or _killer.kill_now:
+                _log.warning("Stop the outer loop after cooldown")
+                toc = time.perf_counter()
+                time_elapsed = toc - tic
+                _log.debug(
+                    f"Round stopped early, took {time_elapsed:0.4f} seconds")
+                break
 
         self.__tx_q.put(QueueTask(TaskType.STOP_WORKER_THREAD, None))
         self.__tx_q.join()
@@ -302,13 +323,13 @@ class TradeLoopRunner:
                 buy_sell_action=analyzed_action,
             )
 
-            time.sleep(0.1)
+            sleep_event.wait(0.1)
             market_price_dict[symbol_info] = latest_quote
             return trade_result
         except:
             _log.exception(
                 f"[{trade_symbol}] Catched an exception in trading symbol loop")
-            time.sleep(3)
+            sleep_event.wait(3)
             return None
 
     def __do_action_by_analysis_result(
