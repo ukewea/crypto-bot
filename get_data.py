@@ -38,7 +38,7 @@ _killer = GracefulKiller(sleep_event)
 
 
 class TradeLoopRunner:
-    def __init__(self, config):
+    def __init__(self, config: Config):
         self.__config = config
 
         # 交易用的貨幣，等同於買股票用的現金
@@ -64,9 +64,18 @@ class TradeLoopRunner:
                 config.position_manage['max_total_open_cost'])
             _log.info(f"Max total open cost: {self.__max_total_open_cost}")
 
-        # 要排除、不交易的貨幣
-        self.__exclude_currencies = config.position_manage['exclude_currencies']
-        _log.info(f"Excluded currencies: {self.__exclude_currencies}")
+        if 'exclude_currencies' in config.position_manage and 'include_currencies' in config.position_manage:
+            # 黑、白名單只能擇一
+            _log.error(f'include_currencies and exclude_currencies cannot both exist.')
+            raise ValueError('include_currencies and exclude_currencies cannot both exist.')
+        elif 'exclude_currencies' in config.position_manage:
+            # 要排除、不交易的貨幣 (黑名單)
+            self.__exclude_currencies = config.position_manage['exclude_currencies']
+            _log.info(f"Excluded currencies: {self.__exclude_currencies}")
+        elif 'include_currencies' in config.position_manage:
+            # 要包含、交易的貨幣 (白名單)
+            self.__include_currencies = config.position_manage['include_currencies']
+            _log.info(f"Included currencies: {self.__include_currencies}")
 
         self.__crypto = Crypto(config)
         self.__notif = config.spawn_nofification_platform()
@@ -224,7 +233,9 @@ class TradeLoopRunner:
         _log.info("----- Closing all positions -----")
 
         self.__watching_symbols = self.__crypto.get_tradable_symbols(
-            self.__cash_currency, self.__exclude_currencies)
+            self.__cash_currency,
+            self.__include_currencies,
+            self.__exclude_currencies)
         _log.debug(f"Watching trading symbols: {self.__watching_symbols}")
 
         equities_balance = self.__crypto.get_equities_balance(
@@ -474,7 +485,7 @@ class TradeLoopRunner:
 
 
 if __name__ == '__main__':
-    _log.info("App starts")
+    _log.info("App started")
 
     # Some objects load from local file
     config = Config()

@@ -77,7 +77,7 @@ class Crypto:
         symbol_ticker = self.client.get_symbol_ticker(symbol=trade_symbol)
         return symbol_ticker
 
-    def get_tradable_symbols(self, quote_asset, exclude_assets):
+    def get_tradable_symbols(self, quote_asset, include_assets, exclude_assets):
         """找出以 quote_asset 報價，且目前可交易、可送市價單、非槓桿型的交易對"""
 
         exchange_info = self.get_exchange_info()
@@ -88,12 +88,24 @@ class Crypto:
         trade_with_quote_asset = [item for item in exchange_info['symbols']
                                   if item['quoteAsset'].upper() == quote_asset]
 
-        return [WatchingSymbol(symbol['symbol'], symbol['baseAsset'], symbol)
-                for symbol in trade_with_quote_asset
-                if symbol['status'].upper() == "TRADING"
-                and not symbol['baseAsset'] in exclude_assets
-                and "MARKET" in symbol['orderTypes']
-                and not "LEVERAGED" in symbol['permissions']]
+        if include_assets is not None and exclude_assets is not None:
+            raise ValueError('include_assets and exclude_assets cannot both be non empty')
+
+        if include_assets is not None:
+            return [WatchingSymbol(symbol['symbol'], symbol['baseAsset'], symbol)
+                    for symbol in trade_with_quote_asset
+                    if symbol['status'].upper() == "TRADING"
+                    and symbol['baseAsset'] in include_assets
+                    and "MARKET" in symbol['orderTypes']
+                    and not "LEVERAGED" in symbol['permissions']]
+
+        if exclude_assets is not None:
+            return [WatchingSymbol(symbol['symbol'], symbol['baseAsset'], symbol)
+                    for symbol in trade_with_quote_asset
+                    if symbol['status'].upper() == "TRADING"
+                    and not symbol['baseAsset'] in exclude_assets
+                    and "MARKET" in symbol['orderTypes']
+                    and not "LEVERAGED" in symbol['permissions']]
 
     def get_klines(self, symbol, klines_limit=100, interval=Client.KLINE_INTERVAL_15MINUTE):
         """
