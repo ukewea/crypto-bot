@@ -1,6 +1,6 @@
 import logging.config
 import threading
-
+from discord import SyncWebhook
 from . import bot_abc, queue_task
 
 _log = logging.getLogger(__name__)
@@ -9,6 +9,7 @@ _log = logging.getLogger(__name__)
 class Bot(bot_abc.Bot):
     def __init__(self, config):
         _log.debug("init a Discord bot")
+        self.bot = SyncWebhook.from_url(url=config['discord_bot']['webhook_url'])
 
     def start_worker_thread(self, rx_q, tx_q):
         def worker():
@@ -35,7 +36,7 @@ class Bot(bot_abc.Bot):
     def send_messages(self, texts):
         text = ''
         for t in texts:
-            text = text + t + "\n"
+            text = text + t + "\n\n"
 
         self.send_message(text.rstrip())
 
@@ -47,5 +48,4 @@ class Bot(bot_abc.Bot):
         self.send_message(text.rstrip())
 
     def send_message(self, text):
-        # self.bot.sendMessage(chat_id=self.channel_id, text=text)
-        raise Exception
+        self.bot.send(content=text)

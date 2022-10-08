@@ -110,9 +110,10 @@ user-config/position-manage.json
 user-config/credentials.json
 user-config/bot.json
 user-config/logging.ini
-asset_positions/*
+asset-positions/*
 history_klines/*
 logs/*
 logs-debug/*
+mock-exchange-data-storage/*
 stoppp
 _stoppp

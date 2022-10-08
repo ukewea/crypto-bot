@@ -10,7 +10,8 @@ _log = logging.getLogger(__name__)
 class AssetPositions:
     """基於檔案儲存的、帳號下的資產倉位"""
 
-    BASE_DIR = "asset_positions"
+    BASE_DIR = os.path.normpath(os.path.join(
+            os.path.dirname(__file__), '..', "asset-positions"))
 
     def __init__(self, watching_symbols, cash_asset):
         os.makedirs(AssetPositions.BASE_DIR, mode=0o755, exist_ok=True)

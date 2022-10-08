@@ -12,8 +12,8 @@ class Config:
     def __init__(self):
         """建構式"""
 
-        self.config_dir = os.path.join(
-            os.path.dirname(__file__), '..', 'user-config')
+        self.config_dir = os.path.normpath(os.path.join(
+            os.path.dirname(__file__), '..', 'user-config'))
 
         # API key/secret
         with open(os.path.join(self.config_dir, "auth.json"), "r+") as json_file:
@@ -41,6 +41,7 @@ class Config:
 
         try:
             module_path = f"notification_platforms.{self.bot['platform']}"
+            _log.debug(f'Finding {module_path} for notification...')
             module = import_module(module_path)
             notif_class = getattr(module, "Bot")
             notif = notif_class(self.bot)

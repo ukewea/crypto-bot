@@ -48,7 +48,7 @@ class BinanceTradingWrapper:
 
         return ret
 
-    def order_qty(self, side, quantity, symbol, order_type=ORDER_TYPE_MARKET):
+    def order_qty(self, side: str, quantity: str, symbol: str, order_type=ORDER_TYPE_MARKET):
         """送出指定交易數量的訂單"""
 
         if order_type != ORDER_TYPE_MARKET:

@@ -20,8 +20,6 @@ class Crypto:
         self.__klines = klines
         self.__trade = trade
 
-#region trading related APIs
-
     def get_binance_trade_and_klines(config: Config):
         client = Client(
             api_key=config.auth["API_KEY"],
@@ -42,9 +40,11 @@ class Crypto:
         )
 
         klines = binance_klines.BinanceKlineWrapper(client)
-        trade = mock_trading.MockTradingWrapper(client)
+        trade = mock_trading.MockTradingWrapper(config, klines)
 
         return Crypto(klines, trade)
+
+#region trading related APIs
 
     def get_equities_balance(
         self,
@@ -57,7 +57,7 @@ class Crypto:
             cash_asset
         )
 
-    def order_qty(self, side, quantity, symbol, order_type=ORDER_TYPE_MARKET):
+    def order_qty(self, side: str, quantity: str, symbol: str, order_type=ORDER_TYPE_MARKET):
         """送出指定交易數量的訂單 (e.g., 買/賣 10 顆 BTC)"""
         return self.__trade.order_qty(side, quantity, symbol, order_type)
 
@@ -89,4 +89,5 @@ class Crypto:
         :return: klines data
         """
         return self.__klines.get_klines(symbol, klines_limit, interval)
+
 #endregion

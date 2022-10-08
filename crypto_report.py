@@ -1,7 +1,7 @@
 import logging.config
 from datetime import datetime
 from decimal import Decimal
-
+import os
 import pandas as pd
 import pygsheets
 from binance.enums import *

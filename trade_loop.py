@@ -1,28 +1,28 @@
 import __init__
-
 import logging.config
 import queue
 import time
 import signal
+import send_order
+import asset_record_platforms.file_based_asset_positions as file_based_asset_positions
+import asset_record_platforms.position as position
+import os
 from decimal import Decimal
 from typing import List
 from threading import Event
-
 from binance.enums import *
-
-import send_order
-import asset_record_platforms.file_based_asset_positions
-import asset_record_platforms.position
-import os
 from send_order import OrderStatus, OrderResult
 from analyzer import *
 from bot_env_config.config import Config
 from exchange_api_wrappers.crypto import *
+from exchange_api_wrappers.wrapped_data import *
 from crypto_report import CryptoReport
 from notification_platforms.queue_task import *
 
+
 class GracefulKiller:
     kill_now = False
+
     def __init__(self, sleep_event):
         self.__sleep_event = sleep_event
         signal.signal(signal.SIGINT, self.exit_gracefully)
@@ -32,10 +32,11 @@ class GracefulKiller:
         self.kill_now = True
         self.__sleep_event.set()
 
+
 sleep_event = Event()
 _log = logging.getLogger(__name__)
 _killer = GracefulKiller(sleep_event)
-
+write_to_gsheet = False
 
 class TradeLoopRunner:
     def __init__(self, config: Config):
@@ -64,10 +65,15 @@ class TradeLoopRunner:
                 config.position_manage['max_total_open_cost'])
             _log.info(f"Max total open cost: {self.__max_total_open_cost}")
 
+        self.__include_currencies = None
+        self.__exclude_currencies = None
+
         if 'exclude_currencies' in config.position_manage and 'include_currencies' in config.position_manage:
             # 黑、白名單只能擇一
-            _log.error(f'include_currencies and exclude_currencies cannot both exist.')
-            raise ValueError('include_currencies and exclude_currencies cannot both exist.')
+            _log.error(
+                f'include_currencies and exclude_currencies cannot both exist.')
+            raise ValueError(
+                'include_currencies and exclude_currencies cannot both exist.')
         elif 'exclude_currencies' in config.position_manage:
             # 要排除、不交易的貨幣 (黑名單)
             self.__exclude_currencies = config.position_manage['exclude_currencies']
@@ -103,7 +109,7 @@ class TradeLoopRunner:
     def start_loop(self):
         """啟動分析全部交易對的迴圈"""
         self.__watching_symbols = self.__crypto.get_tradable_symbols(
-            self.__cash_currency, self.__exclude_currencies)
+            self.__cash_currency, self.__include_currencies, self.__exclude_currencies)
         _log.debug(f"Watching trading symbols: {self.__watching_symbols}")
 
         equities_balance = self.__crypto.get_equities_balance(
@@ -167,18 +173,22 @@ class TradeLoopRunner:
             self.__try_notify_transactions(transactions_made)
 
             # 更新 Google Sheet
-            try:
-                report.update_market_price(
-                    market_price_dict, self.__record.positions)
-            except:
-                _log.exception(
-                    f"Catched an exception while updating report on Google Sheet")
+
+            if write_to_gsheet:
+                try:
+                    report.update_market_price(
+                        market_price_dict, self.__record.positions)
+                except:
+                    _log.exception(
+                        f"Catched an exception while updating report on Google Sheet")
 
             if len(insufficient_fund_trade_symbols) > 0:
-                _log.warning(f"Cannot send BUY order for the following due to insufficient funds: {insufficient_fund_trade_symbols}")
+                _log.warning(
+                    f"Cannot send BUY order for the following due to insufficient funds: {insufficient_fund_trade_symbols}")
 
             if not keep_loop_running or _killer.kill_now:
-                _log.warning("Stop the outer loop after updating report on Google Sheet")
+                _log.warning(
+                    "Stop the outer loop after updating report on Google Sheet")
                 toc = time.perf_counter()
                 time_elapsed = toc - tic
                 _log.debug(
@@ -322,7 +332,8 @@ class TradeLoopRunner:
                 return None
 
             latest_quote = klines[-1].close
-            analyzed_action = self.__analyzer.analyze(klines, self.__record.positions[base_asset])
+            analyzed_action = self.__analyzer.analyze(
+                klines, self.__record.positions[base_asset])
 
             _log.debug(
                 f"[{trade_symbol}] {self.__analyzer.tag} = {analyzed_action}")
@@ -411,7 +422,9 @@ class TradeLoopRunner:
         if trade_result.status != OrderStatus.OK:
             return
 
-        report.add_transaction(trade_result.transactions)
+        if write_to_gsheet:
+            report.add_transaction(trade_result.transactions)
+
         for tx in trade_result.transactions:
             _log.info(tx)
             tx_made.append(tx)
