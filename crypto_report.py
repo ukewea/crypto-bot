@@ -6,9 +6,8 @@ import pandas as pd
 import pygsheets
 from binance.enums import *
 
-import position
-from config import *
-from crypto import *
+import asset_record_platforms.position as position
+from bot_env_config.config import Config
 
 _log = logging.getLogger(__name__)
 

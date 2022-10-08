@@ -6,12 +6,12 @@ if __name__ == '__main__':
     from binance.client import Client
 
     from analyzer import *
-    from config import *
-    from crypto import *
+    from bot_env_config.config import Config
+    from exchange_api_wrappers.crypto import *
 
     tic = time.perf_counter()
     config = Config()
-    crypto = Crypto(config)
+    crypto = Crypto.get_binance_trade_and_klines(config)
 
     # 交易用的貨幣，等同於買股票用的現金
     cash_asset = "USDT"
@@ -19,10 +19,10 @@ if __name__ == '__main__':
     # 要排除的貨幣
     exclude_assets = []
 
-    watching_symbols = crypto.get_tradable_symbols(cash_asset, exclude_assets)
+    watching_symbols = crypto.get_tradable_symbols(cash_asset, None, exclude_assets)
 
     fromdate = "01-01-2021"
-    todate = "05-01-2021"  # API有問題，目前不管怎樣都會抓到今天為止
+    todate = "05-01-2021"
     KLINE_INTERVAL = Client.KLINE_INTERVAL_15MINUTE
     BASE_DIR = 'history_klines'
 

@@ -2,11 +2,11 @@ if __name__ == '__main__':
     import backtrader as bt
     import datetime
     from analyzer import *
-    from crypto import *
-    from config import *
+    from exchange_api_wrappers.crypto import *
+    from bot_env_config.config import Config
 
     config = Config()
-    crypto = Crypto(config)
+    crypto = Crypto.get_binance_trade_and_klines(config)
 
     # 交易用的貨幣，等同於買股票用的現金
     cash_asset = "USDT"

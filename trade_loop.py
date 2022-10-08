@@ -11,15 +11,15 @@ from threading import Event
 from binance.enums import *
 
 import send_order
-import file_based_asset_positions
-import position
+import asset_record_platforms.file_based_asset_positions
+import asset_record_platforms.position
+import os
 from send_order import OrderStatus, OrderResult
 from analyzer import *
-from config import *
-from crypto import *
+from bot_env_config.config import Config
+from exchange_api_wrappers.crypto import *
 from crypto_report import CryptoReport
 from notification_platforms.queue_task import *
-
 
 class GracefulKiller:
     kill_now = False
@@ -77,7 +77,13 @@ class TradeLoopRunner:
             self.__include_currencies = config.position_manage['include_currencies']
             _log.info(f"Included currencies: {self.__include_currencies}")
 
-        self.__crypto = Crypto(config)
+        self.client = Client(
+            api_key=config.auth["API_KEY"],
+            api_secret=config.auth["API_SECRET"],
+            testnet=False
+        )
+
+        self.__crypto = Crypto.get_mock_trade_and_binance_klines(config)
         self.__notif = config.spawn_nofification_platform()
         self.__tx_q = queue.Queue()
         self.__rx_q = queue.Queue()
@@ -96,9 +102,6 @@ class TradeLoopRunner:
 
     def start_loop(self):
         """啟動分析全部交易對的迴圈"""
-        # exchange_info = self.__crypto.get_exchange_info()
-        # _log.debug(exchange_info)
-
         self.__watching_symbols = self.__crypto.get_tradable_symbols(
             self.__cash_currency, self.__exclude_currencies)
         _log.debug(f"Watching trading symbols: {self.__watching_symbols}")

@@ -4,8 +4,9 @@ from decimal import Decimal
 from enum import Enum
 from binance.enums import *
 
-import crypto
-import position
+import exchange_api_wrappers.crypto as crypto
+from exchange_api_wrappers.wrapped_data import *
+import asset_record_platforms.position as position
 
 _log = logging.getLogger(__name__)
 
@@ -36,7 +37,7 @@ def open_position_with_max_fund(
     cash_asset: str,
     max_fund: Decimal,
     asset_position: position.Position,
-    symbol_info: crypto.WatchingSymbol,
+    symbol_info: WatchingSymbol,
     round_id: str
 ) -> OrderResult:
     """

@@ -3,7 +3,7 @@ import logging.config
 import backtrader as bt
 import numpy
 import talib
-from config import *
+from bot_env_config.config import Config
 
 from .analyzer import *
 

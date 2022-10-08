@@ -13,7 +13,7 @@ class Config:
         """建構式"""
 
         self.config_dir = os.path.join(
-            os.path.dirname(__file__), 'user-config')
+            os.path.dirname(__file__), '..', 'user-config')
 
         # API key/secret
         with open(os.path.join(self.config_dir, "auth.json"), "r+") as json_file:

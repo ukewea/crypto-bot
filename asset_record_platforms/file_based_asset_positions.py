@@ -2,7 +2,7 @@ import json
 import logging.config
 import os
 
-from position import *
+from .position import *
 
 _log = logging.getLogger(__name__)
 

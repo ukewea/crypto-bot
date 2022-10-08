@@ -2,11 +2,12 @@ import asyncio
 import collections
 import time
 import traceback
+import os
 
 from binance import AsyncClient, BinanceSocketManager
 
-from config import *
-from crypto import *
+from bot_env_config.config import Config
+from exchange_api_wrappers.crypto import *
 
 
 def test_api(crypto, watching_symbols, closed_klines):
@@ -42,8 +43,9 @@ def test_api(crypto, watching_symbols, closed_klines):
 
 
 async def main_1m():
-    config = Config()
-    crypto = Crypto(config)
+    config_dir = os.path.join(os.path.dirname(__file__), 'user-config')
+    config = Config(config_dir)
+    crypto = Crypto.get_binance_trade_and_klines(config)
     cash_currency = config.position_manage['cash_currency']
     exclude_currencies = config.position_manage['exclude_currencies']
 
