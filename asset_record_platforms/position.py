@@ -101,8 +101,7 @@ class Position:
 
     def __str__(self):
         if self.open_quantity > 0:
-            return f"{str(self.asset_symbol)}: {self.open_quantity.normalize():f} @{self.open_cost.normalize():f}"
-            f", realized = {self.realized_gain.normalize():f}"
+            return f"{str(self.asset_symbol)}: {self.open_quantity.normalize():f} @{self.open_cost.normalize():f}, realized = {self.realized_gain.normalize():f}"
 
         return f"{str(self.asset_symbol)}: no position, realized = {self.realized_gain.normalize():f}"
 

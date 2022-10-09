@@ -10,6 +10,7 @@ import time
 import uuid
 import random
 import string
+import traceback
 import bot_env_config.config
 _log = logging.getLogger(__name__)
 
@@ -134,7 +135,9 @@ class MockTradingWrapper:
             self.__on_order_fulfilled(side, trading_asset, market_price, quantity)
             return (True, order)
         except Exception as e:
+            e.with_traceback
             _log.error(f"[order_qty] an exception occurred - {e}")
+            print(traceback.format_exc())
             return (False, None)
 
 
@@ -164,7 +167,7 @@ class MockTradingWrapper:
             quantity *= Decimal('-1')
 
         cash_delta = Decimal(price) * quantity * Decimal('-1')
-        self.__positions[self.__cash_currency] += cash_delta
+        self.__positions[self.__cash_currency] = str(Decimal(self.__positions[self.__cash_currency]) + cash_delta)
 
         if asset_symbol not in self.__positions:
             self.__positions[asset_symbol] = quantity

@@ -38,6 +38,7 @@ _log = logging.getLogger(__name__)
 _killer = GracefulKiller(sleep_event)
 write_to_gsheet = False
 
+
 class TradeLoopRunner:
     def __init__(self, config: Config):
         self.__config = config
@@ -80,7 +81,26 @@ class TradeLoopRunner:
             _log.info(f"Excluded currencies: {self.__exclude_currencies}")
         elif 'include_currencies' in config.position_manage:
             # 要包含、交易的貨幣 (白名單)
-            self.__include_currencies = config.position_manage['include_currencies']
+            ics = config.position_manage['include_currencies'][:]
+            if not ics:
+                _log.error('include_currencies must not be empty.')
+                raise ValueError('include_currencies must not be empty.')
+
+            ics.sort()
+            l = 1
+            dups = set()
+            for r in range(1, len(ics)):
+                if ics[l-1] != ics[r]:
+                    ics[l] = ics[r]
+                    l += 1
+                else:
+                    dups.add(ics[r])
+
+            if dups:
+                _log.warn(
+                    f"Duplicate entry(ies) exist in include_currencies: {dups}, make every entry unique to remove this message.")
+
+            self.__include_currencies = ics[:l]
             _log.info(f"Included currencies: {self.__include_currencies}")
 
         self.client = Client(
@@ -173,7 +193,6 @@ class TradeLoopRunner:
             self.__try_notify_transactions(transactions_made)
 
             # 更新 Google Sheet
-
             if write_to_gsheet:
                 try:
                     report.update_market_price(
@@ -317,8 +336,7 @@ class TradeLoopRunner:
         trade_symbol = symbol_info.symbol
         base_asset = symbol_info.base_asset
 
-        asset_balance = equities_balance[base_asset]
-        if asset_balance is None:
+        if base_asset not in equities_balance:
             # 沒辦法看到該幣餘額，推斷帳號無法交易此幣，所以不計算策略
             _log.warning(
                 f"Cannot get {base_asset} balance in your account, skip analyzing this currency")
