@@ -163,13 +163,18 @@ class Transaction:
         }
 
     def to_str(self, withdate=True):
+        quote_asset_symbol = self.trade_symbol[len(self.symbol):]
         s = (
-            f"TX {self.activity} {self.quantity.normalize():f} {self.symbol} "
-            f"@{self.price.normalize():f} {self.trade_symbol[len(self.symbol):]} FEE {self.commission_as_usdt.normalize():f} USDT "
+            f"TX {self.activity} {self.quantity.normalize():f} {self.symbol}"
+            f" @{self.price.normalize():f} {quote_asset_symbol}"
+            f" AMT {(self.price * self.quantity).normalize():f} {quote_asset_symbol}"
         )
 
+        if self.commission_as_usdt != 0:
+            s += f" FEE {self.commission_as_usdt.normalize():f} {quote_asset_symbol}"
+
         if withdate:
-            s += f"on {datetime.utcfromtimestamp(self.time/1000).strftime('%Y-%m-%d %H:%M:%S')} UTC"
+            s += f" on {datetime.utcfromtimestamp(self.time/1000).strftime('%Y-%m-%d %H:%M:%S')} UTC"
 
         return s
 
