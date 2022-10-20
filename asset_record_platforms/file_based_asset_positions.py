@@ -23,7 +23,7 @@ class AssetPositions:
 
     def get_total_commision_as_usdt(self):
         """取得總手續費 (USDT)"""
-        sum = Decimal(0.0)
+        sum = Decimal('0.0')
         for pos in self.positions.values():
             sum += pos.total_commission_as_usdt
 

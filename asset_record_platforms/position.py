@@ -21,10 +21,10 @@ class Position:
         self.transactions = list()
 
         if dict is None:
-            self.open_quantity = Decimal(0.0)
-            self.open_cost = Decimal(0.0)
-            self.realized_gain = Decimal(0.0)
-            self.total_commission_as_usdt = Decimal(0.0)
+            self.open_quantity = Decimal("0.0")
+            self.open_cost = Decimal("0.0")
+            self.realized_gain = Decimal("0.0")
+            self.total_commission_as_usdt = Decimal("0.0")
             return
 
         # print(dict)
