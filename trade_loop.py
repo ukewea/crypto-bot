@@ -143,7 +143,7 @@ class TradeLoopRunner:
         # 印出持倉
         for k, v in self.__record.positions.items():
             if v.open_quantity > 0:
-                _log.info(f"Position from save file: {str(v)}")
+                _log.info(f"Position: {str(v)}")
 
         # 當交易量達到一定數值後，向外發出目前剩餘的現金
         acc_transaction_count_before_notify_free_cash = 0
