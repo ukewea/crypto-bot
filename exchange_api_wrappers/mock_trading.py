@@ -170,9 +170,9 @@ class MockTradingWrapper:
         self.__positions[self.__cash_currency] = str(Decimal(self.__positions[self.__cash_currency]) + cash_delta)
 
         if asset_symbol not in self.__positions:
-            self.__positions[asset_symbol] = quantity
+            self.__positions[asset_symbol] = str(quantity)
         else:
-            self.__positions[asset_symbol] += quantity
+            self.__positions[asset_symbol] = str(Decimal(self.__positions[asset_symbol]) + quantity)
 
         with open(record_path, 'w') as outfile:
             json.dump(self.to_dict(), outfile)
