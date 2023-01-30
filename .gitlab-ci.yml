@@ -27,5 +27,5 @@ publish_amd64:
       --context "${CI_PROJECT_DIR}"
       --dockerfile "${CI_PROJECT_DIR}/Dockerfile"
       --destination "$FULL_TAG_COMMIT_AMD64"
-      --destination "$FULL_TAG_LATEST_ARM64"
+      --destination "$FULL_TAG_LATEST_AMD64"
       --build-arg BUILD_ID=$CI_COMMIT_SHORT_SHA
