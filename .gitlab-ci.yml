@@ -1,0 +1,31 @@
+stages:
+  - publish
+
+variables:
+  TAG_LATEST: latest
+  TAG_COMMIT: $CI_COMMIT_SHORT_SHA
+  REPO: $CI_REGISTRY_IMAGE/$CI_COMMIT_REF_NAME
+  REPO_AMD64: ${REPO}-amd64
+  REPO_ARM64: ${REPO}-arm64
+  FULL_TAG_COMMIT_AMD64: ${REPO_AMD64}:${TAG_COMMIT}
+  FULL_TAG_LATEST_AMD64: ${REPO_AMD64}:${TAG_LATEST}
+  FULL_TAG_COMMIT_ARM64: ${REPO_ARM64}:${TAG_COMMIT}
+  FULL_TAG_LATEST_ARM64: ${REPO_ARM64}:${TAG_LATEST}
+  CONTAINER_NAME: crypto-bot
+
+publish_amd64:
+  stage: publish
+  image:
+    name: gcr.io/kaniko-project/executor:v1.9.1-debug
+    entrypoint: [""]
+  tags:
+    - amd64
+    - linux
+    - docker
+  script:
+    - /kaniko/executor
+      --context "${CI_PROJECT_DIR}"
+      --dockerfile "${CI_PROJECT_DIR}/Dockerfile"
+      --destination "$FULL_TAG_COMMIT_AMD64"
+      --destination "$FULL_TAG_LATEST_ARM64"
+      --build-arg BUILD_ID=$CI_COMMIT_SHORT_SHA
