@@ -13,14 +13,16 @@ variables:
   FULL_TAG_LATEST_ARM64: ${REPO_ARM64}:${TAG_LATEST}
   CONTAINER_NAME: crypto-bot
 
+image:
+  name: gcr.io/kaniko-project/executor:v1.9.1-debug
+  entrypoint: [""]
+
 publish_amd64:
   stage: publish
-  image:
-    name: gcr.io/kaniko-project/executor:v1.9.1-debug
-    entrypoint: [""]
+  needs: []
   tags:
-    - amd64
     - linux
+    - amd64
     - docker
   script:
     - /kaniko/executor
@@ -28,4 +30,37 @@ publish_amd64:
       --dockerfile "${CI_PROJECT_DIR}/Dockerfile"
       --destination "$FULL_TAG_COMMIT_AMD64"
       --destination "$FULL_TAG_LATEST_AMD64"
-      --build-arg BUILD_ID=$CI_COMMIT_SHORT_SHA
+
+publish_arm64:
+  stage: publish
+  needs: []
+  tags:
+    - linux
+    - arm64
+    - docker
+  script:
+    - /kaniko/executor
+      --context "${CI_PROJECT_DIR}"
+      --dockerfile "${CI_PROJECT_DIR}/Dockerfile"
+      --destination "$FULL_TAG_COMMIT_ARM64"
+      --destination "$FULL_TAG_LATEST_ARM64"
+
+publish_multiarch:
+  stage: publish
+  image: 
+    name: mplatform/manifest-tool:alpine
+    entrypoint: [""]
+  tags:
+    - linux
+  needs: [publish_amd64, publish_arm64]
+  script:
+    - /manifest-tool --username $CI_REGISTRY_USER --password $CI_REGISTRY_PASSWORD 
+      push from-args 
+        --platforms linux/amd64,linux/arm64 
+        --template ${REPO}-ARCH:${TAG_LATEST} 
+        --target ${REPO}:${TAG_LATEST}
+    - /manifest-tool --username $CI_REGISTRY_USER --password $CI_REGISTRY_PASSWORD 
+      push from-args 
+        --platforms linux/amd64,linux/arm64 
+        --template ${REPO}-ARCH:${TAG_COMMIT} 
+        --target ${REPO}:${TAG_COMMIT}
