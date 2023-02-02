@@ -1,24 +1,25 @@
 stages:
-  - publish
+  - pub-s-arch
+  - pub-m-arch
 
 variables:
   TAG_LATEST: latest
   TAG_COMMIT: $CI_COMMIT_SHORT_SHA
-  REPO: $CI_REGISTRY_IMAGE/$CI_COMMIT_REF_NAME
-  REPO_AMD64: ${REPO}-amd64
-  REPO_ARM64: ${REPO}-arm64
-  FULL_TAG_COMMIT_AMD64: ${REPO_AMD64}:${TAG_COMMIT}
-  FULL_TAG_LATEST_AMD64: ${REPO_AMD64}:${TAG_LATEST}
-  FULL_TAG_COMMIT_ARM64: ${REPO_ARM64}:${TAG_COMMIT}
-  FULL_TAG_LATEST_ARM64: ${REPO_ARM64}:${TAG_LATEST}
+  REPO_CI: $CI_REGISTRY_IMAGE/$CI_COMMIT_REF_NAME
+  REPO_CI_AMD64: ${REPO_CI}-amd64
+  REPO_CI_ARM64: ${REPO_CI}-arm64
+  IMG_NAME_CI_COMMIT_AMD64: ${REPO_CI_AMD64}:${TAG_COMMIT}
+  IMG_NAME_CI_LATEST_AMD64: ${REPO_CI_AMD64}:${TAG_LATEST}
+  IMG_NAME_CI_COMMIT_ARM64: ${REPO_CI_ARM64}:${TAG_COMMIT}
+  IMG_NAME_CI_LATEST_ARM64: ${REPO_CI_ARM64}:${TAG_LATEST}
   CONTAINER_NAME: crypto-bot
 
 image:
   name: gcr.io/kaniko-project/executor:v1.9.1-debug
   entrypoint: [""]
 
-publish_amd64:
-  stage: publish
+pub_amd64:
+  stage: pub-s-arch
   needs: []
   tags:
     - linux
@@ -28,11 +29,11 @@ publish_amd64:
     - /kaniko/executor
       --context "${CI_PROJECT_DIR}"
       --dockerfile "${CI_PROJECT_DIR}/Dockerfile"
-      --destination "$FULL_TAG_COMMIT_AMD64"
-      --destination "$FULL_TAG_LATEST_AMD64"
+      --destination "$IMG_NAME_CI_COMMIT_AMD64"
+      --destination "$IMG_NAME_CI_LATEST_AMD64"
 
-publish_arm64:
-  stage: publish
+pub_arm64:
+  stage: pub-s-arch
   needs: []
   tags:
     - linux
@@ -42,11 +43,11 @@ publish_arm64:
     - /kaniko/executor
       --context "${CI_PROJECT_DIR}"
       --dockerfile "${CI_PROJECT_DIR}/Dockerfile"
-      --destination "$FULL_TAG_COMMIT_ARM64"
-      --destination "$FULL_TAG_LATEST_ARM64"
+      --destination "$IMG_NAME_CI_COMMIT_ARM64"
+      --destination "$IMG_NAME_CI_LATEST_ARM64"
 
-publish_multiarch:
-  stage: publish
+pub_multiarch:
+  stage: pub-m-arch
   image: 
     name: mplatform/manifest-tool:alpine
     entrypoint: [""]
@@ -58,10 +59,10 @@ publish_multiarch:
     - /manifest-tool --username $CI_REGISTRY_USER --password $CI_REGISTRY_PASSWORD 
       push from-args 
         --platforms linux/amd64,linux/arm64 
-        --template ${REPO}-ARCH:${TAG_LATEST} 
-        --target ${REPO}:${TAG_LATEST}
+        --template ${REPO_CI}-ARCH:${TAG_LATEST} 
+        --target ${REPO_CI}:${TAG_LATEST}
     - /manifest-tool --username $CI_REGISTRY_USER --password $CI_REGISTRY_PASSWORD 
       push from-args 
         --platforms linux/amd64,linux/arm64 
-        --template ${REPO}-ARCH:${TAG_COMMIT} 
-        --target ${REPO}:${TAG_COMMIT}
+        --template ${REPO_CI}-ARCH:${TAG_COMMIT} 
+        --target ${REPO_CI}:${TAG_COMMIT}
