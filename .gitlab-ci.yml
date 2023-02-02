@@ -54,7 +54,7 @@ pub_multiarch:
   tags:
     - linux
     - docker
-  needs: [publish_amd64, publish_arm64]
+  needs: [pub_amd64, pub_arm64]
   script:
     - /manifest-tool --username $CI_REGISTRY_USER --password $CI_REGISTRY_PASSWORD 
       push from-args 
