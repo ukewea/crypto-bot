@@ -65,9 +65,9 @@ def open_position_with_max_fund(
         filters_dict[f['filterType']] = f
 
     # 先檢查資金是否滿足最小成交額需求
-    min_notional_dict = filters_dict['MIN_NOTIONAL']
-    # print(f"MIN_NOTIONAL dict: {min_notional_dict}")
-    min_notional = Decimal(min_notional_dict['minNotional'])
+    notional_dict = filters_dict['NOTIONAL']
+    # print(f"NOTIONAL dict: {notional_dict}")
+    min_notional = Decimal(notional_dict['minNotional'])
     if (max_fund < min_notional):
         _log.debug(f"[{trade_symbol}] No cash to send a BUY order"
                    f" (minNotional = {min_notional.normalize():f}, our budget = {max_fund.normalize():f}")
