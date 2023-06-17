@@ -1,0 +1,25 @@
+[tool.poetry]
+name = "crypto-bot"
+version = "0.3.0"
+description = ""
+authors = ["ukewea <60734042+ukewea@users.noreply.github.com>"]
+readme = "README.md"
+packages = [{include = "crypto_bot"}]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+python-binance = "^1.0.17"
+numpy = "^1.24.3"
+TA-Lib = "^0.4.26"
+python-telegram-bot = "^20.3"
+pygsheets = "^2.0.6"
+pandas = "^2.0.2"
+discord-py = "^2.3.0"
+backtrader = "^1.9.78.123"
+
+[tool.poetry.group.dev.dependencies]
+black = "^23.3.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
