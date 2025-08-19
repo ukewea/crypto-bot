@@ -104,3 +104,33 @@ Located in `user-config/` (copy from `user-config-sample/`):
 - Respects Binance lot size, notional, and quantity filters
 - Maintains transaction history in local JSON for auditability
 - Supports both live trading and mock trading modes
+
+### Order Execution Behavior
+
+**Why Order Amounts Vary from `max_fund_per_currency`:**
+
+The bot's order execution system prioritizes **exchange compliance** over exact dollar amounts. When placing orders, the actual cost may differ from the configured `max_fund_per_currency` due to Binance's trading rules:
+
+1. **LOT_SIZE Filter Compliance**: Each trading pair has specific quantity restrictions
+   - `minQty`: Minimum quantity per order
+   - `maxQty`: Maximum quantity per order  
+   - `stepSize`: Quantity must be a multiple of this value
+
+2. **Order Calculation Process** (`send_order.py:82-95`):
+   ```
+   max_buyable_quantity = max_fund ÷ current_price
+   rounded_quantity = max_buyable_quantity - (max_buyable_quantity % step_size)
+   actual_cost = rounded_quantity × execution_price
+   ```
+
+3. **Typical Variance Examples**:
+   - Target: $10.00 → Actual: $9.25 (BTC) - 7.5% under due to strict step size
+   - Target: $10.00 → Actual: $9.90 (ETH) - 1% under due to favorable step size
+   - Target: $10.00 → Actual: $9.92 (DOGE) - 0.8% under due to rounding
+
+4. **Additional Factors**:
+   - **NOTIONAL Filter**: Minimum order value requirements
+   - **Price Fluctuations**: Price may change between calculation and execution
+   - **Quantity Rounding**: Always rounds down to ensure exchange acceptance
+
+**Design Rationale**: This approach ensures orders are never rejected by the exchange due to filter violations, which is more reliable than attempting exact dollar amounts that might fail. The variance is typically small (within 10% of target) and represents successful market execution rather than system error.
