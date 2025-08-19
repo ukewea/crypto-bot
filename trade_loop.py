@@ -432,6 +432,7 @@ class TradeLoopRunner:
                     asset_position=self.__record.positions[base_asset],
                     symbol_info=symbol_info,
                     round_id=round_id,
+                    position_accumulation_strategy=self.__config.position_manage.get('position_accumulation_strategy', 'hold_until_sell')
                 )
 
                 self.__process_order_result(

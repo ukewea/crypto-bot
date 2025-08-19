@@ -38,7 +38,8 @@ def open_position_with_max_fund(
     max_fund: Decimal,
     asset_position: position.Position,
     symbol_info: WatchingSymbol,
-    round_id: str
+    round_id: str,
+    position_accumulation_strategy: str = "hold_until_sell"
 ) -> OrderResult:
     """
     開倉：限制最多買入金額，買入指定交易對
@@ -54,10 +55,13 @@ def open_position_with_max_fund(
     _log.debug(f"[{trade_symbol}] Entering buy process")
 
     open_quantity = asset_position.open_quantity
-    if open_quantity > 0:
+    if open_quantity > 0 and position_accumulation_strategy == "hold_until_sell":
         _log.debug(
-            f"[{trade_symbol}] Already holds {base_asset} (qty {open_quantity.normalize():f}), skip the buy")
+            f"[{trade_symbol}] Already holds {base_asset} (qty {open_quantity.normalize():f}), skip the buy (hold_until_sell strategy)")
         return OrderResult(SIDE_BUY, OrderStatus.ALREADY_OPEN)
+    elif open_quantity > 0 and position_accumulation_strategy == "accumulate":
+        _log.info(
+            f"[{trade_symbol}] Adding to existing {base_asset} position (qty {open_quantity.normalize():f}) using accumulate strategy")
 
     symbol_filters = symbol_info.info['filters']
     filters_dict = dict()

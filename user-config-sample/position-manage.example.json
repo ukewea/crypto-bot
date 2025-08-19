@@ -5,6 +5,7 @@
     "max_total_open_cost": "3000",
     "trading_mode": "binance_trading",
     "enable_google_sheets": true,
+    "position_accumulation_strategy": "hold_until_sell",
     "include_currencies": [
         "BTC",
         "ETH",

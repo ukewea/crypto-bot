@@ -86,10 +86,33 @@ python get_data.py  # Legacy entry point mentioned in README
 Located in `user-config/` (copy from `user-config-sample/`):
 - `auth.json` - Binance API credentials, Google Sheets API
 - `analyzer.json` - Strategy type and parameters
-- `position-manage.json` - Cash currency, position limits, include/exclude lists
+- `position-manage.json` - Cash currency, position limits, trading behavior, include/exclude lists
 - `bot.json` - Notification platform settings
 - `credentials.json` - Google Sheets service account
 - `logging.ini` - Logging configuration
+
+### Position Accumulation Strategies
+
+The `position_accumulation_strategy` setting in `position-manage.json` controls how the bot handles existing positions when buy signals are generated:
+
+**"hold_until_sell" (Traditional):**
+- **Pattern**: Buy → Hold → Sell
+- **Behavior**: Skip all buy signals while holding a position
+- **Use case**: Technical analysis strategies (RSI, WILLR) that expect holding periods
+- **Example**: Buy when RSI oversold, hold until RSI overbought, then sell
+
+**"accumulate" (DCA-friendly):**
+- **Pattern**: Buy → Buy → Buy (continuous accumulation)
+- **Behavior**: Allow multiple buys to build larger positions over time
+- **Use case**: Dollar-cost averaging and systematic accumulation strategies
+- **Example**: DCA analyzer buying $10 every hour regardless of existing positions
+
+```json
+{
+  "position_accumulation_strategy": "accumulate"  // For DCA strategies
+  "position_accumulation_strategy": "hold_until_sell"  // For technical analysis
+}
+```
 
 ### Key Design Patterns
 
