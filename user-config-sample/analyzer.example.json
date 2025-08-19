@@ -9,5 +9,8 @@
         "period": 89,
         "underbuy": -99,
         "oversell": -1
+    },
+    "DCA": {
+        "min_interval_between_buy": 3600
     }
 }
