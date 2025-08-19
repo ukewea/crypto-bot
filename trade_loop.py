@@ -36,7 +36,7 @@ class GracefulKiller:
 sleep_event = Event()
 _log = logging.getLogger(__name__)
 _killer = GracefulKiller(sleep_event)
-write_to_gsheet = False
+write_to_gsheet = False  # Will be set dynamically based on configuration
 
 
 class TradeLoopRunner:
@@ -109,7 +109,21 @@ class TradeLoopRunner:
             testnet=False
         )
 
-        self.__crypto = Crypto.get_mock_trade_and_binance_klines(config)
+        # Configure trading mode based on configuration
+        trading_mode = config.position_manage.get('trading_mode', 'mock_trading')
+        if trading_mode == 'mock_trading':
+            self.__crypto = Crypto.get_mock_trade_and_binance_klines(config)
+            _log.info("Using mock trading mode")
+        elif trading_mode == 'binance_trading':
+            self.__crypto = Crypto.get_binance_trade_and_klines(config)
+            _log.info("Using live Binance trading mode")
+        else:
+            raise ValueError(f"Invalid trading_mode: {trading_mode}. Use 'mock_trading' or 'binance_trading'")
+        
+        # Configure Google Sheets recording
+        global write_to_gsheet
+        write_to_gsheet = config.position_manage.get('enable_google_sheets', False)
+        _log.info(f"Google Sheets recording: {'enabled' if write_to_gsheet else 'disabled'}")
         self.__notif = config.spawn_nofification_platform()
         self.__tx_q = queue.Queue()
         self.__rx_q = queue.Queue()
@@ -138,7 +152,9 @@ class TradeLoopRunner:
             self.__watching_symbols, self.__cash_currency)
 
         # Google Sheet 報表 client
-        report = CryptoReport(config=self.__config)
+        report = None
+        if write_to_gsheet:
+            report = CryptoReport(config=self.__config)
 
         # 印出持倉
         for k, v in self.__record.positions.items():
@@ -276,7 +292,9 @@ class TradeLoopRunner:
             self.__watching_symbols, self.__cash_currency)
 
         # Google Sheet 報表 client
-        report = CryptoReport(config=self.__config)
+        report = None
+        if write_to_gsheet:
+            report = CryptoReport(config=self.__config)
 
         self.__free_cash = equities_balance[self.__cash_currency].free
         market_price_dict = {}
@@ -343,15 +361,20 @@ class TradeLoopRunner:
             return None
 
         try:
-            _log.debug(f'[{trade_symbol}] Downloading K lines')
+            _log.info(f'[{trade_symbol}] Downloading K lines from Binance...')
             klines = self.__crypto.get_klines(
                 trade_symbol, 20, Client.KLINE_INTERVAL_1DAY)
             if klines is None:
+                _log.warning(f'[{trade_symbol}] Failed to get K lines from Binance')
                 return None
 
             latest_quote = klines[-1].close
+            _log.info(f'[{trade_symbol}] ✓ Got Binance quote: {latest_quote} USDT (from {len(klines)} K-lines)')
+            
+            _log.info(f'[{trade_symbol}] Performing technical analysis using {self.__analyzer.__class__.__name__}...')
             analyzed_action = self.__analyzer.analyze(
                 klines, self.__record.positions[base_asset])
+            _log.info(f'[{trade_symbol}] ✓ Technical analysis result: {analyzed_action.name}')
 
             _log.debug(
                 f"[{trade_symbol}] {self.__analyzer.tag} = {analyzed_action}")

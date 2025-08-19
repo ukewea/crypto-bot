@@ -3,6 +3,8 @@
     "max_fund_per_currency": "20",
     "max_open_positions": "300",
     "max_total_open_cost": "3000",
+    "trading_mode": "binance_trading",
+    "enable_google_sheets": true,
     "include_currencies": [
         "BTC",
         "ETH",
