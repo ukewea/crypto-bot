@@ -1,6 +1,6 @@
-# CLAUDE.md
+# AGENTS.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This document provides guidance for AI agents (Claude Code, GitHub Copilot, etc.) when working with the crypto-bot repository. It outlines project conventions, development workflows, and architectural patterns to ensure consistent and effective assistance.
 
 ## Project Overview
 
@@ -25,6 +25,21 @@ python trade_loop.py
 ```bash
 # Format code (Black is configured)
 poetry run black .
+
+# Check code style
+poetry run black --check .
+
+# Run linting (if configured)
+poetry run flake8 .
+```
+
+### Testing
+```bash
+# Run tests (when available)
+poetry run pytest
+
+# Test configuration loading
+poetry run python -c "from bot_env_config.config import Config; Config()"
 ```
 
 ### Running the Bot
@@ -34,6 +49,9 @@ python trade_loop.py
 
 # Alternative entry points
 python get_data.py  # Legacy entry point mentioned in README
+
+# Container deployment
+docker-compose up --build
 ```
 
 ### Graceful Shutdown
@@ -51,7 +69,7 @@ python get_data.py  # Legacy entry point mentioned in README
 - Manages position limits and cash flow
 
 **send_order.py** - Binance API integration for order execution
-- `open_position_with_max_fund()` - Creates buy orders with fund limits
+- `execute_buy_order()` - Creates buy orders with fund limits (supports DCA and traditional strategies)
 - `close_all_position()` - Liquidates all holdings of a currency
 - Handles order validation, minimum notional requirements, and lot size filtering
 
@@ -60,6 +78,7 @@ python get_data.py  # Legacy entry point mentioned in README
 **analyzer/** - Pluggable strategy implementations
 - `analyzer.py` - Base abstract class with `Trade` enum (PASS/BUY/SELL)
 - `RSI_Analyzer.py`, `WILLR_Analyzer.py` - Technical indicator strategies
+- `DCA_Buy_Analyzer.py`, `DCA_Sell_Analyzer.py` - Dollar-cost averaging strategies
 - New strategies must inherit from `Analyzer` and implement `analyze(klines, position)`
 
 ### Infrastructure
@@ -117,7 +136,7 @@ The `position_accumulation_strategy` setting in `position-manage.json` controls 
 ### Key Design Patterns
 
 - **Strategy Pattern**: Analyzers are pluggable via dynamic module loading
-- **Position Management**: Enforces max fund per currency, max open positions, total cost limits
+- **Position Management**: Enforces max fund per order, max open positions, total cost limits
 - **Graceful Shutdown**: Signal handling ensures clean state persistence
 - **Error Recovery**: Extensive exception handling with logging, continues operation on API failures
 - **Rate Limiting**: Built-in delays between API calls and symbol processing
@@ -130,9 +149,9 @@ The `position_accumulation_strategy` setting in `position-manage.json` controls 
 
 ### Order Execution Behavior
 
-**Why Order Amounts Vary from `max_fund_per_currency`:**
+**Why Order Amounts Vary from `max_fund_per_order`:**
 
-The bot's order execution system prioritizes **exchange compliance** over exact dollar amounts. When placing orders, the actual cost may differ from the configured `max_fund_per_currency` due to Binance's trading rules:
+The bot's order execution system prioritizes **exchange compliance** over exact dollar amounts. When placing orders, the actual cost may differ from the configured `max_fund_per_order` due to Binance's trading rules:
 
 1. **LOT_SIZE Filter Compliance**: Each trading pair has specific quantity restrictions
    - `minQty`: Minimum quantity per order
@@ -157,3 +176,139 @@ The bot's order execution system prioritizes **exchange compliance** over exact 
    - **Quantity Rounding**: Always rounds down to ensure exchange acceptance
 
 **Design Rationale**: This approach ensures orders are never rejected by the exchange due to filter violations, which is more reliable than attempting exact dollar amounts that might fail. The variance is typically small (within 10% of target) and represents successful market execution rather than system error.
+
+## Development Conventions
+
+### File Naming
+- Analyzer classes: `{Type}_Analyzer.py` (e.g., `RSI_Analyzer.py`, `DCA_Buy_Analyzer.py`)
+- Configuration files: `{purpose}.json` in `user-config/`
+- API wrappers: `{exchange}_{function}.py` (e.g., `binance_trading.py`)
+
+### Code Style
+- Use Python snake_case for variables and functions
+- Class names in PascalCase
+- Constants in UPPER_SNAKE_CASE
+- Comprehensive logging with structured messages
+
+### Configuration Management
+- Never commit actual API keys or credentials
+- Use `user-config-sample/` for templates
+- Support both live and mock trading modes
+- Validate configuration on startup
+
+## Trading Strategy Development
+
+### Adding New Analyzers
+1. Inherit from `analyzer.Analyzer` base class
+2. Implement `analyze(klines, position)` method
+3. Return `Trade.BUY`, `Trade.SELL`, or `Trade.PASS`
+4. Add configuration section to `analyzer.json`
+5. Update `config.py` if needed for dynamic loading
+
+### Analyzer Types Available
+- **RSI_Analyzer**: Relative Strength Index technical analysis
+- **WILLR_Analyzer**: Williams %R technical analysis
+- **DCA_Buy_Analyzer**: Dollar-cost averaging buy strategy
+- **DCA_Sell_Analyzer**: Dollar-cost averaging sell strategy
+
+### Configuration Examples
+```json
+// Technical Analysis Strategy
+{
+    "type": "RSI",
+    "RSI": {"period": 14, "underbuy": 30, "oversell": 70}
+}
+
+// DCA Buy Strategy
+{
+    "type": "DCA_Buy",
+    "DCA": {"min_interval_between_buy": 3600}
+}
+
+// DCA Sell Strategy
+{
+    "type": "DCA_Sell", 
+    "DCA": {"min_interval_between_sell": 7200}
+}
+```
+
+## Error Handling & Safety
+
+### Error Recovery
+- Extensive exception handling with logging
+- Continues operation on API failures
+- Rate limiting with built-in delays
+- Transaction rollback on critical failures
+
+### Safety Mechanisms
+- Mock trading mode for safe testing
+- Position limits to prevent overexposure
+- Graceful shutdown to preserve state
+- Transaction logging for audit trails
+
+## Security Considerations
+
+- API keys stored in `user-config/auth.json` (not committed)
+- Support for testnet and live trading modes
+- Transaction logging for audit trails
+- No exposure of sensitive data in logs
+
+## Common Pitfalls
+
+1. **Order Rejection**: Always respect exchange filters (minimum quantity, notional value)
+2. **Position Tracking**: Don't bypass the position management system
+3. **Configuration**: Validate JSON syntax and required fields
+4. **Rate Limits**: Respect Binance API rate limits with delays
+5. **Graceful Shutdown**: Use proper shutdown mechanisms to avoid state corruption
+
+## Testing Strategies
+
+### Mock Trading Mode
+- Set `"trading_mode": "mock_trading"` in `position-manage.json`
+- Uses real market data but simulates trades
+- Safe for strategy development and testing
+
+### Configuration Testing
+```python
+from bot_env_config.config import Config
+config = Config()
+analyzer = config.spawn_analyzer()
+```
+
+### Component Testing
+- Test analyzers with historical kline data
+- Validate position calculations
+- Check configuration loading and validation
+
+## Deployment
+
+### Docker
+```bash
+# Build container
+docker build -t crypto-bot:latest .
+
+# Run with docker-compose
+docker-compose up -d
+```
+
+### Production Checklist
+- [ ] API keys configured and tested
+- [ ] Trading mode set correctly (`binance_trading` for live)
+- [ ] Position limits configured appropriately
+- [ ] Notification platforms configured
+- [ ] Google Sheets integration (optional) configured
+- [ ] Graceful shutdown mechanism tested
+- [ ] Log monitoring in place
+
+## Documentation Updates
+
+When modifying the codebase:
+1. Update `CLAUDE.md` for major architectural changes
+2. Update configuration examples in `user-config-sample/`
+3. Document new analyzer types and their parameters
+4. Update Docker configuration if dependencies change
+5. Maintain this `AGENTS.md` file for AI agent guidance
+
+---
+
+*This document should be updated whenever significant architectural changes, new patterns, or development conventions are introduced to the project.*
