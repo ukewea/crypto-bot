@@ -5,15 +5,15 @@ from .analyzer import *
 _log = logging.getLogger(__name__)
 
 
-class DCA_Analyzer(Analyzer):
+class DCA_Buy_Analyzer(Analyzer):
     """
-    Dollar Cost Averaging (DCA) Analyzer
-    Always buys at regular intervals regardless of price, implementing DCA strategy.
+    Dollar Cost Averaging (DCA) Buy Analyzer
+    Always buys at regular intervals regardless of price, implementing DCA buy strategy.
     """
     
     def __init__(self, config):
         """建構式"""
-        _log.debug("Init DCA_Analyzer")
+        _log.debug("Init DCA_Buy_Analyzer")
         
         self.tag = "DCA"
         self.min_interval_between_buy = config["DCA"]["min_interval_between_buy"]
@@ -21,7 +21,7 @@ class DCA_Analyzer(Analyzer):
         # In-memory storage for last buy times per asset (symbol -> timestamp)
         self._last_buy_times = {}
         
-        _log.info(f"DCA_Analyzer initialized with min_interval_between_buy: {self.min_interval_between_buy} seconds")
+        _log.info(f"DCA_Buy_Analyzer initialized with min_interval_between_buy: {self.min_interval_between_buy} seconds")
 
     def analyze(self, klines, position):
         """

@@ -13,7 +13,8 @@ from threading import Event
 from binance.enums import *
 from send_order import OrderStatus, OrderResult
 from analyzer import *
-from analyzer.DCA_Analyzer import DCA_Analyzer
+from analyzer.DCA_Buy_Analyzer import DCA_Buy_Analyzer
+from analyzer.DCA_Sell_Analyzer import DCA_Sell_Analyzer
 from bot_env_config.config import Config
 from exchange_api_wrappers.crypto import *
 from exchange_api_wrappers.wrapped_data import *
@@ -472,11 +473,15 @@ class TradeLoopRunner:
             _log.info(tx)
             tx_made.append(tx)
 
-        # Record successful DCA buy if using DCA analyzer
-        if isinstance(self.__analyzer, DCA_Analyzer) and trade_result.side == SIDE_BUY:
+        # Record successful DCA operations if using DCA analyzers
+        if isinstance(self.__analyzer, DCA_Buy_Analyzer) and trade_result.side == SIDE_BUY:
             base_asset = trade_symbol.replace(self.__cash_currency, '')  # Extract base asset from symbol
             self.__analyzer.record_successful_buy(base_asset)
             _log.info(f'Recorded successful buy for {base_asset}')
+        elif isinstance(self.__analyzer, DCA_Sell_Analyzer) and trade_result.side == SIDE_SELL:
+            base_asset = trade_symbol.replace(self.__cash_currency, '')  # Extract base asset from symbol
+            self.__analyzer.record_successful_sell(base_asset)
+            _log.info(f'Recorded successful sell for {base_asset}')
 
         self.__cal_new_cash_balance(trade_result)
         _log.debug(

@@ -11,6 +11,7 @@
         "oversell": -1
     },
     "DCA": {
-        "min_interval_between_buy": 3600
+        "min_interval_between_buy": 3600,
+        "min_interval_between_sell": 3600
     }
 }
