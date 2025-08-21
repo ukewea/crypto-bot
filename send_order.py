@@ -30,7 +30,7 @@ class OrderResult:
         self.raw_response = None
 
 
-def open_position_with_max_fund(
+def execute_buy_order(
     api_client: crypto.Crypto,
     base_asset: str,
     trade_symbol: str,
@@ -42,14 +42,15 @@ def open_position_with_max_fund(
     position_accumulation_strategy: str = "hold_until_sell"
 ) -> OrderResult:
     """
-    開倉：限制最多買入金額，買入指定交易對
+    執行買入訂單：限制單次最多買入金額，適用於DCA和傳統策略
     api_client: API client
     base_asset: 資產名稱
     trade_symbol: 資產交易時的交易對
     cash_asset: 現金的資產名稱
-    max_fund: 最大投入資金
+    max_fund: 單次最大投入資金
     asset_position: 某一幣種目前倉位的結構
     symbol_info: 交易對在交易所內的交易情況、交易限制等資訊
+    position_accumulation_strategy: 位置累積策略
     """
 
     _log.debug(f"[{trade_symbol}] Entering buy process")

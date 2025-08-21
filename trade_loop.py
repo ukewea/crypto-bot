@@ -48,10 +48,10 @@ class TradeLoopRunner:
         self.__cash_currency = config.position_manage['cash_currency']
         _log.info(f"Cash currency: {self.__cash_currency}")
 
-        # 每個幣種最多投入的資金
-        self.__max_fund_per_currency = Decimal(
-            config.position_manage['max_fund_per_currency'])
-        _log.info(f"Max fund per currency: {self.__max_fund_per_currency}")
+        # 每次購買投入的最大資金
+        self.__max_fund_per_order = Decimal(
+            config.position_manage['max_fund_per_order'])
+        _log.info(f"Max fund per order: {self.__max_fund_per_order}")
 
         # 最多開倉的貨幣數量
         self.__max_open_positions = None
@@ -419,11 +419,11 @@ class TradeLoopRunner:
             )
 
             if can_send_buy_order:
-                # 確認剩餘的現金是否大於最大投入限額
+                # 確認剩餘的現金是否大於單次最大投入金額
                 # 若剩餘的現金小於限額，將剩餘現金投入
-                max_fund = self.__free_cash.min(self.__max_fund_per_currency)
+                max_fund = self.__free_cash.min(self.__max_fund_per_order)
 
-                trade_result = send_order.open_position_with_max_fund(
+                trade_result = send_order.execute_buy_order(
                     api_client=self.__crypto,
                     base_asset=base_asset,
                     trade_symbol=trade_symbol,
