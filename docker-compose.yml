@@ -12,6 +12,9 @@ services:
       - ./asset-positions:/usr/src/app/asset-positions
       # Logs directory (if created)
       - ./logs:/usr/src/app/logs
+      # Sync timezone with host
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
     restart: unless-stopped
     environment:
       - PYTHONUNBUFFERED=1
