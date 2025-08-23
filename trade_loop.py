@@ -163,8 +163,8 @@ class TradeLoopRunner:
             if v.open_quantity > 0:
                 _log.info(f"Position: {str(v)}")
 
-        # 當交易量達到一定數值後，向外發出目前剩餘的現金
-        acc_transaction_count_before_notify_free_cash = 0
+        # 當交易量達到一定數值後，向外發出目前剩餘的現金和 P&L 快照
+        acc_transaction_count_before_notify_pnl = 0
 
         self.__free_cash = equities_balance[self.__cash_currency].free
         keep_loop_running = True
@@ -244,14 +244,26 @@ class TradeLoopRunner:
                     _log.info(
                         f"Cash balance = {self.__free_cash} after transactions are made")
 
-                # 累計交易數量夠多時，向外通知目前剩餘的現金
-                acc_transaction_count_before_notify_free_cash += len(
-                    transactions_made)
-                if acc_transaction_count_before_notify_free_cash >= 20:
+                # 累計交易數量夠多時，向外通知目前剩餘的現金和 P&L 快照
+                acc_transaction_count_before_notify_pnl += len(transactions_made)
+                notify_threshold = self.__config.position_manage.get('acc_transaction_count_before_notify_pnl', 20)
+                
+                if acc_transaction_count_before_notify_pnl >= notify_threshold:
                     if self.__notif is not None:
+                        # Send cash balance notification
                         self.__tx_q.put(QueueTask(
                             TaskType.NOTIFY_CASH_BALANCE, f"{self.__free_cash.normalize():f} {self.__cash_currency}"))
-                    acc_transaction_count_before_notify_free_cash = 0
+                        
+                        # Calculate and send P&L snapshot
+                        try:
+                            pnl_data = self.__record.cal_portfolio_pnl(market_price_dict, self.__cash_currency)
+                            pnl_message = self.__record.format_pnl_snapshot_message(pnl_data, "Trading")
+                            self.__tx_q.put(QueueTask(TaskType.NOTIFY_PNL_SNAPSHOT, pnl_message))
+                            _log.info("P&L snapshot notification sent")
+                        except Exception as e:
+                            _log.exception("Failed to calculate or send P&L snapshot")
+                            
+                    acc_transaction_count_before_notify_pnl = 0
 
                 sleep_event.wait(1)
             except:
@@ -545,8 +557,9 @@ class TradeLoopRunner:
 
     def __try_notify_transactions(self, transactions_made):
         try:
-            # 跑完一輪後再一次送出全部的交易通知
-            if self.__notif is not None and len(transactions_made) > 0:
+            # 跑完一輪後再一次送出全部的交易通知 (如果配置允許)
+            enable_tx_notifications = self.__config.position_manage.get('enable_transaction_notifications', True)
+            if self.__notif is not None and len(transactions_made) > 0 and enable_tx_notifications:
                 self.__tx_q.put(
                     QueueTask(TaskType.NOTIFY_TX, transactions_made))
         except:

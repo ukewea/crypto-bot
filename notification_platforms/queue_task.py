@@ -5,6 +5,7 @@ class TaskType(Enum):
     STOP_WORKER_THREAD = 0
     NOTIFY_TX = 1
     NOTIFY_CASH_BALANCE = 2
+    NOTIFY_PNL_SNAPSHOT = 3
 
 
 class QueueTask:

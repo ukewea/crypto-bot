@@ -24,6 +24,9 @@ class Bot(bot_abc.Bot):
                         self.notify_transactions(item.payload)
                     elif item.task_type == queue_task.TaskType.NOTIFY_CASH_BALANCE:
                         self.send_message(f"Cash balance: {item.payload}")
+                    elif item.task_type == queue_task.TaskType.NOTIFY_PNL_SNAPSHOT:
+                        _log.debug("Sending P&L snapshot notification")
+                        self.send_message(f"```\n{item.payload}\n```")
                     else:
                         _log.error(f"Unknown TaskType {item.task_type}")
                 except:
