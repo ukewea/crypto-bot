@@ -6,6 +6,8 @@ This document provides guidance for AI agents (Claude Code, GitHub Copilot, etc.
 
 This is a Python cryptocurrency trading bot that automatically trades on Binance using customized strategies based on technical analysis indicators (RSI, Williams %R). The bot operates 24/7 and includes features for position management, transaction reporting to Google Sheets, and push notifications.
 
+**New Addition**: The project now includes a **React TypeScript dashboard** (`dashboard/crypto-dashboard/`) that provides real-time visualization of trading positions, live market prices from Binance API, and comprehensive P&L analytics.
+
 ## Common Commands
 
 ### Dependency Management
@@ -54,6 +56,27 @@ python get_data.py  # Legacy entry point mentioned in README
 docker-compose up --build
 ```
 
+### Dashboard Commands
+```bash
+# Quick start dashboard (from crypto-bot root)
+./start-dashboard.sh                # Linux/Mac
+start-dashboard.bat                 # Windows
+
+# Custom port
+./start-dashboard.sh 8080          # Use port 8080
+start-dashboard.bat 8080
+
+# Manual dashboard startup
+cd dashboard/crypto-dashboard
+npm run dev:full                   # Both servers
+npm run dev                        # Frontend only
+npm run server                     # Backend only
+
+# Build dashboard for production
+cd dashboard/crypto-dashboard
+npm run build
+```
+
 ### Graceful Shutdown
 - Create a file named `stoppp` in root directory, or
 - Use Ctrl+C (SIGINT) or kill command (SIGTERM)
@@ -87,6 +110,16 @@ docker-compose up --build
 - `crypto.py` - Main API wrapper interface
 - `binance_trading.py`, `binance_klines.py` - Live trading implementations
 - `mock_trading.py` - Paper trading for testing
+
+**dashboard/** - React TypeScript web dashboard (NEW)
+- `crypto-dashboard/` - Main dashboard application
+  - `src/components/` - React UI components (PortfolioSummary, AssetCard, etc.)
+  - `src/services/` - API services (fileService, priceService for Binance integration)
+  - `src/hooks/` - Custom React hooks (useAssetData, usePortfolioWithPrices)
+  - `server/` - Node.js Express API server (port 39583)
+- `start-dashboard.sh` - Linux/Mac startup script
+- `start-dashboard.bat` - Windows startup script
+- Provides real-time portfolio visualization with live market prices
 
 **asset_record_platforms/** - Position tracking system
 - `file_based_asset_positions.py` - Local JSON-based position storage
@@ -280,6 +313,14 @@ analyzer = config.spawn_analyzer()
 - Validate position calculations
 - Check configuration loading and validation
 
+### Dashboard Testing
+- **Frontend Development**: `npm run dev` in `dashboard/crypto-dashboard/`
+- **API Server Testing**: `npm run server` to test backend independently
+- **Build Verification**: `npm run build` to check for TypeScript errors
+- **Price Service Testing**: Dashboard automatically caches Binance API calls (30-second intervals)
+- **Data Integration**: Verify dashboard reads position files from `asset-positions/`
+- **Mock Data**: Dashboard gracefully handles missing price data or API failures
+
 ## Deployment
 
 ### Docker
@@ -292,6 +333,8 @@ docker-compose up -d
 ```
 
 ### Production Checklist
+
+**Trading Bot:**
 - [ ] API keys configured and tested
 - [ ] Trading mode set correctly (`binance_trading` for live)
 - [ ] Position limits configured appropriately
@@ -299,6 +342,15 @@ docker-compose up -d
 - [ ] Google Sheets integration (optional) configured
 - [ ] Graceful shutdown mechanism tested
 - [ ] Log monitoring in place
+
+**Dashboard:**
+- [ ] Node.js and npm installed (v16+ recommended)
+- [ ] Dashboard dependencies installed (`npm install`)
+- [ ] Server dependencies installed (`cd server && npm install`)
+- [ ] API server port accessible (default: 39583)
+- [ ] Asset position files readable by dashboard
+- [ ] Binance public API accessible for live prices
+- [ ] Frontend builds successfully (`npm run build`)
 
 ## Documentation Updates
 
@@ -308,6 +360,13 @@ When modifying the codebase:
 3. Document new analyzer types and their parameters
 4. Update Docker configuration if dependencies change
 5. Maintain this `AGENTS.md` file for AI agent guidance
+
+**Dashboard-specific updates:**
+6. Update `dashboard/README.md` for frontend changes
+7. Update TypeScript interfaces in `src/types/` for data structure changes
+8. Update startup scripts if port or dependency changes are made
+9. Document new React components in component files
+10. Update API documentation if backend endpoints change
 
 ---
 

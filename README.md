@@ -4,6 +4,7 @@ Trading cryptocurrencies on Binance 24 hours a day, 7 days a week.
 ## Features
 - Put your money Binance on the line
 - 可用 Python 實作自訂的買入/賣出策略 (基於加密貨幣過去的 K 線紀錄)
+- **📊 Real-time Trading Dashboard** - React TypeScript web interface with live Binance prices
 - 交易報表 on Google Sheet
 - Transaction notification
 - 可放在 Docker container 內執行 (搭配[特定 image](https://hub.docker.com/r/wuuker/python-bot-env))
@@ -17,6 +18,7 @@ Trading cryptocurrencies on Binance 24 hours a day, 7 days a week.
 - `config.py` configuration files loader
 - `file_based_asset_positions.py`: crypto position management module
 - `notification_platforms/` folders where push notification implementations are
+- `dashboard/crypto-dashboard/`: React TypeScript dashboard for portfolio visualization
 
 ## How to get started?
 
@@ -40,7 +42,45 @@ Trading cryptocurrencies on Binance 24 hours a day, 7 days a week.
   * `position-manage.json` - Set your cash currency, inclusion/exclusion lists of cryptos you want to trade.
 
 
-## Entry point?
+## Trading Dashboard 📊
+
+A comprehensive web-based dashboard to visualize your trading positions and performance in real-time.
+
+### Quick Start Dashboard
+
+**Linux/Mac:**
+```bash
+./start-dashboard.sh
+```
+
+**Windows:**
+```cmd
+start-dashboard.bat
+```
+
+**Custom Port:**
+```bash
+./start-dashboard.sh 8080    # Use custom port
+start-dashboard.bat 8080
+```
+
+### Dashboard Features
+- **📈 Real-time Portfolio Overview** - Current value, costs, and P&L calculations
+- **💹 Live Binance Prices** - Fetches current market prices for accurate valuations
+- **🎯 Unrealized P&L Tracking** - Shows potential gains/losses on current positions
+- **📊 Interactive Visualizations** - Charts and graphs using Recharts
+- **📋 Complete Transaction History** - Detailed view of all buy/sell activities
+- **🚀 Auto-refresh Data** - Dashboard updates automatically as you trade
+
+### Manual Dashboard Setup
+```bash
+cd dashboard/crypto-dashboard
+npm install
+cd server && npm install && cd ..
+npm run dev:full  # Starts both API server (port 39583) and frontend (port 5173)
+```
+
+## Trading Bot Entry Point
 Run `python get_data.py`
 
 ## How to quit the app?
